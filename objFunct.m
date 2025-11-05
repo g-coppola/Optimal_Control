@@ -15,17 +15,17 @@ function [J] = objFunct(Z,h,A,B,Q,R,P,param)
     for k = 1:h
         u = U(:,k); 
         x = X(:,k);
-        c = cell(1,l);
+        c = zeros(1,l);
         for i = 1:l
-            c{i} = (A{i}*x+B{i}*u)'*Q*(A{i}*x+B{i}*u)+ u'*R *u;
+            c(i) = (A{i}*x+B{i}*u)'*Q*(A{i}*x+B{i}*u)+ u'*R *u;
         end
         J = J + max(c);
     end
 
     % Terminal Cost
-    cf = cell(1,l);
+    cf = zeros(1,l);
     for i = 1:l
-        cf{i} = (A{i}*X(:,h)+B*U(:,h))'*P*(A{i}*X(:,h)+B*U(:,h));
+        cf(i) = (A{i}*X(:,h)+B{i}*U(:,h))'*P*(A{i}*X(:,h)+B{i}*U(:,h));
     end
     J = J + max(cf);
 end

@@ -531,7 +531,7 @@ for k = 1:N
         uk = F*xk;
     else
           
-    [Z_ottimo, ~, exitflag, ~] = fmincon(@(Z)objFunct(Z,h,Q,R,P,param),Z0,Aineq, bineq, Aeq, beq, lb, ub,@(Z)nonLinConstraints(Z,xk,h,P,dt,ft,param),options);
+    [Z_ottimo, ~, exitflag, ~] = fmincon(@(Z)objFunct(Z,h,A_cell,B_cell,Q,R,P,param),Z0,Aineq, bineq, Aeq, beq, lb, ub,@(Z)nonLinConstraints(Z,xk,A_cell,B_cell,h,P,dt,ft,param),options);
     
     uk = zeros(m,1); 
     
