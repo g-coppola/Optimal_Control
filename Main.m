@@ -80,7 +80,7 @@ clear x t
 N = round(tspan(2)/dt);
 
 param.Q = diag([10 1 5 1]);
-param.R = 0.05*eye(param.m);
+param.R = 0.01*eye(param.m);
 param.S = eye(param.n);
 
 % Control for infinite Horizon
@@ -213,7 +213,7 @@ hold on
 plot(x(:,1),x(:,2),'b','LineWidth',1.5);
 xlabel('x_1 - [m]')
 ylabel('x_2 - [m/s]')
-legend('Ellypsoid','Equilibrium Point','State Evolution')
+legend('Ellipsoid','Equilibrium Point','State Evolution')
 title('(x_1,x_2) Evolution - Uncontrained')
 
 subplot(2,1,2)
@@ -222,7 +222,7 @@ hold on
 plot(x(:,3),x(:,4),'b','LineWidth',1.5);
 xlabel('x_3 - [rad]')
 ylabel('x_4 - [rad/s]')
-legend('Ellypsoid','Equilibrium Point','State Evolution')
+legend('Ellipsoid','Equilibrium Point','State Evolution')
 title('(x_3,x_4) Evolution - Uncontrained')
 
 input('Press to Polytopic Description (Constrained Input)')
@@ -280,7 +280,7 @@ hold on
 plot(x(:,1),x(:,2),'b','LineWidth',1.5);
 xlabel('x_1 - [m]')
 ylabel('x_2 - [m/s]')
-legend('Ellypsoid','Equilibrium Point','State Evolution')
+legend('Ellipsoid','Equilibrium Point','State Evolution')
 title('(x_1,x_2) Evolution - Contrained Input')
 
 subplot(2,1,2)
@@ -289,7 +289,7 @@ hold on
 plot(x(:,3),x(:,4),'b','LineWidth',1.5);
 xlabel('x_3 - [rad]')
 ylabel('x_4 - [rad/s]')
-legend('Ellypsoid','Equilibrium Point','State Evolution')
+legend('Ellipsoid','Equilibrium Point','State Evolution')
 title('(x_3,x_4) Evolution - Contrained Input')
 
 input('Comparison - Unconstrained Constrained')
@@ -446,7 +446,7 @@ hold on
 e1_ccon.bestPlot([1 0 0])
 plot(x_store{1}(:,1),x_store{1}(:,2),'b','LineWidth',1.5);
 plot(x(:,1),x(:,2),'g','LineWidth',1.5);
-rectangle('Position',[-y_max(1),-y_max(2), 2*y_max(1),2*y_max(2)],'EdgeColor','y','LineStyle','--','LineWidth',1.5)
+rectangle('Position',[-y_max(1),-y_max(2), 2*y_max(1),2*y_max(2)],'EdgeColor', [1 0.5 0],'LineStyle','--','LineWidth',1.5)
 xlabel('x_1')
 ylabel('x_2')
 grid
@@ -458,7 +458,7 @@ hold on
 e2_ccon.bestPlot([1 0 0])
 plot(x_store{1}(:,3),x_store{1}(:,4),'b','LineWidth',1.5);
 plot(x(:,3),x(:,4),'g','LineWidth',1.5);
-rectangle('Position',[-y_max(3),-y_max(4), 2*y_max(3),2*y_max(4)],'EdgeColor','y','LineStyle','--','LineWidth',1.5)
+rectangle('Position',[-y_max(3),-y_max(4), 2*y_max(3),2*y_max(4)],'EdgeColor', [1 0.5 0],'LineStyle','--','LineWidth',1.5)
 
 xlabel('x_3')
 ylabel('x_4')
@@ -471,7 +471,7 @@ close all;
 %% ONLINE MPC SIMULATION - DUAL MODE CONTROLLER
 
 N = 40;
-h = 15;
+h = 11;
 
 P = inv(Qe);
 
@@ -574,18 +574,20 @@ subplot(2,1,1)
 hold on
 e1_ccon.bestPlot([1 0 0]);
 plot(x_online(1,:),x_online(2,:),'g','LineWidth',1.5);
-rectangle('Position',[-y_max(1),-y_max(2), 2*y_max(1),2*y_max(2)],'EdgeColor','y','LineStyle','--','LineWidth',1.5)
+rectangle('Position',[-y_max(1),-y_max(2), 2*y_max(1),2*y_max(2)],'EdgeColor', [1 0.5 0],'LineStyle','--','LineWidth',1.5)
 xlabel('x_1')
 ylabel('x_2')
+legend('Ellipsoid','Equilibrium Point','State Evolution')
 grid on
 
 subplot(2,1,2)
 hold on
 e2_ccon.bestPlot([1 0 0]);
 plot(x_online(3,:),x_online(4,:),'g','LineWidth',1.5);
-rectangle('Position',[-y_max(3),-y_max(4), 2*y_max(3),2*y_max(4)],'EdgeColor','y','LineStyle','--','LineWidth',1.5)
+rectangle('Position', [-y_max(3), -y_max(4), 2*y_max(3), 2*y_max(4)],'EdgeColor', [1 0.5 0],'LineStyle', '--', 'LineWidth', 1.5)
 xlabel('x_3')
 ylabel('x_4')
+legend('Ellipsoid','Equilibrium Point','State Evolution')
 grid on
 
 t_online = 0:dt:(N*dt);
@@ -636,6 +638,8 @@ xlabel('Time [s]')
 ylabel('Angular Velocity [rad/s]')
 grid
 
+sgtitle('x(t) - States Evolutions')
+
 figure
 plot(tu,u_online,'-g',LineWidth=1.5)
 hold on
@@ -644,5 +648,6 @@ yline(-u_max,'--k')
 xlabel('Time [s]')
 ylabel('Input - u(t)')
 ylim([-10.5 10.5])
-legend('u(t) - Applyed Torque [rad/s^2]','u_{max}','+u_{max}')
+legend('u(t)','u_{max}','+u_{max}')
+title('u(t) - Applyed Torque [rad/s^2]')
 grid
