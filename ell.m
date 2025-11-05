@@ -11,7 +11,7 @@ classdef ell
             obj.Q = Q;
             obj.n = size(Q,1);
             
-            if nargin == 1 % se il numero di input è 1 allora q = 0n
+            if nargin == 1
                 q = zeros(obj.n,1);
             end
             obj.q = q;
@@ -34,16 +34,18 @@ classdef ell
             b = (x-obj.q)'*obj.Q*(x-obj.q) <= 1;
         end
 
+
         function [phi,b] = supp(obj,z)
             phi = z'*obj.q+sqrt(z'*inv(obj.Q)*z);
             b = inv(obj.Q)*z/sqrt(z'*inv(obj.Q)*z)+obj.q;
         end
 
+        
         function bestPlot(obj,color,bool)
             if nargin == 2 
                 bool = 0;
             end
-            % Plot con Support Function
+            % Plot with Support Function
             delta = 0.01;
             Theta = 0:delta:2*pi+delta;
             
