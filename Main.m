@@ -10,7 +10,7 @@ param.I = 0.5;
 param.g = 9.81;
 param.M = 2;
 param.J = 25e-3;
-param.r = 5;
+param.r = 0.05;
 
 % System
 syms u;                
@@ -471,7 +471,7 @@ close all;
 %% ONLINE MPC SIMULATION - DUAL MODE CONTROLLER
 
 N = 40;
-h = 11;
+h = 12;
 
 P = inv(Qe);
 
@@ -482,7 +482,7 @@ u_max = 8.5;
 y_max = [1.2 1.5 1.3 1.7]'; 
 
 x_online = zeros(param.n,N+1);
-x0 = [0.4, -0.2, 0.25, 0.25]';
+x0 = [0.5, -0.2, 0.4, -0.3]';
 x_online(:,1) = x0;
 xk = x0; 
 
