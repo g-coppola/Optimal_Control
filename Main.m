@@ -144,7 +144,6 @@ xlabel('Time [s]')
 ylabel('States - x(t)')
 title('LQR (Model Predictive Finite) - Zero Regulation')
 grid
-legend('Location', 'southeast')
 legend('x_1(t) - Ball Position [m]', 'x_2(t) - Ball Velocity [m/s]', 'x_3(t) - Beam Angle [rad]','x_4(t) - Beam Velocity [rad/s]')
 hold off
 subplot(2,1,2)
@@ -470,8 +469,8 @@ close all;
 
 %% ONLINE MPC SIMULATION - DUAL MODE CONTROLLER
 
-N = 40;
-h = 12;
+N = 80;
+h = 13;
 
 P = inv(Qe);
 
@@ -482,7 +481,7 @@ u_max = 8.5;
 y_max = [1.2 1.5 1.3 1.7]'; 
 
 x_online = zeros(param.n,N+1);
-x0 = [0.5, -0.2, 0.4, -0.3]';
+x0 = [0.5, -0.2, 0.4, -0.7]';
 x_online(:,1) = x0;
 xk = x0; 
 
