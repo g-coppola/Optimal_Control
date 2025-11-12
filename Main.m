@@ -10,7 +10,7 @@ param.I = 0.5;
 param.g = 9.81;
 param.M = 2;
 param.J = 25e-3;
-param.r = 0.05;
+param.r = 0.12;
 
 % System
 syms u;                
@@ -92,8 +92,17 @@ for i = 1:length(t)
     u(i) = u_eq - K * (x(i,:)' - x_eq);
 end
 
-% Eigenvalues
-eigCL = eig(Ad-Bd*K)
+% % Verifica Correttezza 
+% input('Verifica Correttezza - Infinite Horizon')
+% J = 0;
+% for k = 1:length(t)
+%     xk = x(k,:)';
+%     J = J + xk'*param.Q*xk + u(k)'*param.R*u(k);
+% end
+% 
+% V0 = x0'*SS*x0;
+% 
+% disp(V0-J)
 
 figure;
 subplot(2,1,1)
@@ -112,7 +121,7 @@ legend('u(t) - Applyed Torque [rad/s^2]')
 grid
 
 input("")
-clear x u t
+clear x u t V0 J
 
 % Predictive Control for Finite Horizon
 [P,F] = OLQR(Ad,Bd,param.Q,param.R,param.S,N);
@@ -135,6 +144,21 @@ for k = 1:N-1
 end
 u(N) = u_eq-F{N}*(x(:,N)-x_eq);
 
+% % Verifica Correttezza
+% input('Verifica Correttezza - Finite Horizon')
+% 
+% J = 0;
+% 
+% for k = 1:N-1
+%     J = J + x(:,k)'*param.Q*x(:,k) + u(k)'*param.R*u(k);
+% end
+% 
+% J = J + x(:,N)'*param.S*x(:,N);
+% 
+% V0 = x(:,1)'*P{1}*x(:,1);
+% 
+% disp(V0-J)
+
 t = 0:dt:tspan(2)-dt;
 
 figure;
@@ -155,7 +179,7 @@ grid
 
 input('Press to Polytopic Description (Unconstrained)')
 close all
-clear x t F 
+clear x t F J V0
 
 %% POLYTOPIC DESCRIPTION (Unconstrained)
 L = 0.5;
@@ -470,18 +494,18 @@ close all;
 %% ONLINE MPC SIMULATION - DUAL MODE CONTROLLER
 
 N = 80;
-h = 13;
+h = 12;
 
 P = inv(Qe);
 
 Q = diag([10 10 0.1 0.1]);
 R = 0.1;
 
-u_max = 8.5;
-y_max = [1.2 1.5 1.3 1.7]'; 
+u_max = 10;
+y_max = [0.8 1.5 pi/4 1.7]'; 
 
 x_online = zeros(param.n,N+1);
-x0 = [0.5, -0.2, 0.4, -0.7]';
+x0 = [0.6, 0, pi/8, 0]';
 x_online(:,1) = x0;
 xk = x0; 
 
@@ -646,7 +670,7 @@ yline(u_max,'--k');
 yline(-u_max,'--k')
 xlabel('Time [s]')
 ylabel('Input - u(t)')
-ylim([-10.5 10.5])
+ylim([-11.5 11.5])
 legend('u(t)','u_{max}','+u_{max}')
 title('u(t) - Applyed Torque [rad/s^2]')
 grid
