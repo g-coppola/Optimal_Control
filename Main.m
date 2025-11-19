@@ -12,6 +12,13 @@ param.M = 2;
 param.J = 25e-3;
 param.r = 0.12;
 
+% State/Input Dimension
+param.m = 1;
+param.n = 4;
+
+% Sampling Time
+param.dt = 0.1;
+
 % System
 syms u;                
 syms x [4 1]; 
@@ -24,48 +31,28 @@ r = param.r;
 param.MM = m+J/r^2;
 M = param.MM;
 
+
 f = [x(2);
     -(m*g/M)*sin(x(3))+(m/M)*x(1)*x(4)^2;
     x(4);
     -(m*g)*((x(1)*cos(x(3)))/(I+m*x(1)^2))-2*m*((x(1)*x(2)*x(4))/(I+m*x(1)^2))+u/(I+m*x(1)^2)
     ];
 
-A_tilde = jacobian(f,x);
-B_tilde = jacobian(f,u);
-
 % Equilibrium
-x_eq = [0 0 0 0]';
-u_eq = 0;
-
-A_eq = matlabFunction(A_tilde,'Vars',{x,u});
-B_eq = matlabFunction(B_tilde,'Vars',{x,u});
-
-A  = A_eq(x_eq,u_eq);
-B = B_eq(x_eq,u_eq);
-param.n = size(A,1);
-param.m = size(B,2);
-
-C = eye(param.n);
-D = 0;
-
-dt = 0.1;
-
-sysc = ss(A,B,C,D);
-sysd = c2d(sysc, dt, 'zoh');
-Ad = sysd.A;
-Bd = sysd.B;
+param.x_eq = [0 0 0 0]';
+param.u_eq = 0;
 
 % Initial Conditions
-x0 = x_eq + [0.1 0 -0.05 0]';
+x0 = param.x_eq + [0.1 0 -0.05 0]';
 
 %% FREE RESPONSE
 f_fun = matlabFunction(f,'Vars',{x,u});
 
-tspan = [0 8];
-[t,x] = ode45(@(t,x)f_fun(x,0),tspan,x0);
+param.tspan = [0 8];
+[t,xs] = ode45(@(t,x)f_fun(x,0),param.tspan,x0);
 
 figure;
-plot(t,x,LineWidth=1.5)
+plot(t,xs,LineWidth=1.5)
 xlabel('Time [s]')
 ylabel('States - x(t)')
 title('Free Response')
@@ -74,23 +61,19 @@ grid
 
 input('Press to LQR (Zero Regulation)')
 close all   
-clear x t
+clear xs t
 
 %% LQR (Zero Regulation)
-N = round(tspan(2)/dt);
+N = round(param.tspan(2)/param.dt);
 
 param.Q = diag([10 1 5 1]);
 param.R = 0.01*eye(param.m);
 param.S = eye(param.n);
 
-% Control for infinite Horizon
-[K, SS, e] = dlqr(Ad,Bd,param.Q,param.R);
-[t,x] = ode45(@(t,x)f_fun(x-x_eq,u_eq-K*(x-x_eq)),tspan,x0);
+OC = OptControl(param,f,x,u);
 
-u = zeros(size(t));
-for i = 1:length(t)
-    u(i) = u_eq - K * (x(i,:)' - x_eq);
-end
+% Control for infinite Horizon
+[t, xs, us, e] = OC.lqr(x0);
 
 % % Verifica Correttezza 
 % input('Verifica Correttezza - Infinite Horizon')
@@ -106,7 +89,7 @@ end
 
 figure;
 subplot(2,1,1)
-plot(t,x,LineWidth=1.5);
+plot(t,xs,LineWidth=1.5);
 xlabel('Time [s]')
 ylabel('States - x(t)')
 title('LQR (Infinite) - Zero Regulation')
@@ -114,21 +97,16 @@ grid
 legend('x_1(t) - Ball Position [m]', 'x_2(t) - Ball Velocity [m/s]', 'x_3(t) - Beam Angle [rad]','x_4(t) - Beam Velocity [rad/s]')
 hold off
 subplot(2,1,2)
-plot(t,u,'-g',LineWidth=1.5)
+plot(t,us,'-g',LineWidth=1.5)
 xlabel('Time [s]')
 ylabel('Input - u(t)')
 legend('u(t) - Applyed Torque [rad/s^2]')
 grid
 
 input("")
-clear x u t V0 J
+clear xs us t V0 J
 
 % Predictive Control for Finite Horizon
-[P,F] = OLQR(Ad,Bd,param.Q,param.R,param.S,N);
-
-x = zeros(param.n,N);
-u = zeros(param.m,N);
-x(:,1) = x0;
 
 ft = @(t, x, u) [x(2);
     -(m*g/M)*sin(x(3))+(m/M)*x(1)*x(4)^2;
@@ -136,13 +114,7 @@ ft = @(t, x, u) [x(2);
     -(m*g)*((x(1)*cos(x(3)))/(I+m*x(1)^2))-2*m*((x(1)*x(2)*x(4))/(I+m*x(1)^2))+u/(I+m*x(1)^2)
     ];
 
-
-for k = 1:N-1
-    u(k) = u_eq-F{k}*(x(:,k)-x_eq);
-    dx = ft(0,x(:,k),u(k));
-    x(:,k+1) = x(:,k)+dt*dx;
-end
-u(N) = u_eq-F{N}*(x(:,N)-x_eq);
+[t, xs, us] = OC.OLQR(ft,x0,N);
 
 % % Verifica Correttezza
 % input('Verifica Correttezza - Finite Horizon')
@@ -159,11 +131,9 @@ u(N) = u_eq-F{N}*(x(:,N)-x_eq);
 % 
 % disp(V0-J)
 
-t = 0:dt:tspan(2)-dt;
-
 figure;
 subplot(2,1,1)
-plot(t,x,LineWidth=1.5);
+plot(t,xs,LineWidth=1.5);
 xlabel('Time [s]')
 ylabel('States - x(t)')
 title('LQR (Model Predictive Finite) - Zero Regulation')
@@ -171,7 +141,7 @@ grid
 legend('x_1(t) - Ball Position [m]', 'x_2(t) - Ball Velocity [m/s]', 'x_3(t) - Beam Angle [rad]','x_4(t) - Beam Velocity [rad/s]')
 hold off
 subplot(2,1,2)
-plot(t,u,'-g',LineWidth=1.5)
+plot(t,us,'-g',LineWidth=1.5)
 xlabel('Time [s]')
 ylabel('Input - u(t)')
 legend('u(t) - Applyed Torque [rad/s^2]')
