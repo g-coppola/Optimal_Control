@@ -1,9 +1,10 @@
 classdef OptControl
     properties
         A, B
-        Q, R, S
+        Q, R, S, SS, PP
         param
         f, xsym, usym
+        IFstore, Fstore
     end
     
     methods (Access = public)
@@ -18,17 +19,21 @@ classdef OptControl
             [obj.A, obj.B] = obj.linearize();
         end
         
-        function [t, x, u, e] = lqr(obj, x0)
-            [K, ~, e] = dlqr(obj.A,obj.B,obj.Q,obj.R);
+        function [t, x, u, e] = lqr(obj, ft, x0,N)
+            [K, obj.SS, e] = dlqr(obj.A,obj.B,obj.Q,obj.R);
 
-            f_fun = matlabFunction(obj.f,'Vars',{obj.xsym,obj.usym});
-            
-            [t,x] = ode45(@(t,x)f_fun(x-obj.param.x_eq,obj.param.u_eq-K*(x-obj.param.x_eq)),obj.param.tspan,x0);
+            x = zeros(obj.param.n,N);
+            u = zeros(obj.param.m,N);
+            x(:,1) = x0;
 
-            u = zeros(size(t));
-            for i = 1:length(t)
-                u(i) = obj.param.u_eq - K * (x(i,:)' - obj.param.x_eq);
+            for k = 1:N-1
+                u(:,k) = obj.param.u_eq-K*(x(:,k)-obj.param.x_eq);
+                dx = ft(0,x(:,k),u(:,k));
+                x(:,k+1) = x(:,k)+obj.param.dt*dx;
             end
+            u(N) = obj.param.u_eq-K*(x(:,N)-obj.param.x_eq);
+
+            t = 0:obj.param.dt:obj.param.tspan(2)-obj.param.dt;
         end
 
         function [t, x, u] = OLQR(obj,ft,x0,N)
@@ -43,13 +48,15 @@ classdef OptControl
 
             F{1} = inv(obj.R + obj.B'*P{2}*obj.B)*obj.B'*P{2}*obj.A;
 
+            obj.PP = P;
+
             x = zeros(obj.param.n,N);
             u = zeros(obj.param.m,N);
             x(:,1) = x0;
 
             for k = 1:N-1
-                u(k) = obj.param.u_eq-F{k}*(x(:,k)-obj.param.x_eq);
-                dx = ft(0,x(:,k),u(k));
+                u(:,k) = obj.param.u_eq-F{k}*(x(:,k)-obj.param.x_eq);
+                dx = ft(0,x(:,k),u(:,k));
                 x(:,k+1) = x(:,k)+obj.param.dt*dx;
             end
             u(N) = obj.param.u_eq-F{N}*(x(:,N)-obj.param.x_eq);

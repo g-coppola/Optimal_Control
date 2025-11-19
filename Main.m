@@ -19,6 +19,8 @@ param.n = 4;
 % Sampling Time
 param.dt = 0.1;
 
+param.tspan = [0 8];
+
 % System
 syms u;                
 syms x [4 1]; 
@@ -48,15 +50,14 @@ x0 = param.x_eq + [0.1 0 -0.05 0]';
 %% FREE RESPONSE
 f_fun = matlabFunction(f,'Vars',{x,u});
 
-param.tspan = [0 8];
 [t,xs] = ode45(@(t,x)f_fun(x,0),param.tspan,x0);
 
 figure;
 plot(t,xs,LineWidth=1.5)
-xlabel('Time [s]')
-ylabel('States - x(t)')
-title('Free Response')
-legend('x_1(t) - Ball Position [m]', 'x_2(t) - Ball Velocity [m/s]', 'x_3(t) - Beam Angle [rad]','x_4(t) - Beam Velocity [rad/s]')
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
+title('Free Response','Interpreter','latex')
+legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 grid
 
 input('Press to LQR (Zero Regulation)')
@@ -66,6 +67,12 @@ clear xs t
 %% LQR (Zero Regulation)
 N = round(param.tspan(2)/param.dt);
 
+ft = @(t, x, u) [x(2);
+    -(m*g/M)*sin(x(3))+(m/M)*x(1)*x(4)^2;
+    x(4);
+    -(m*g)*((x(1)*cos(x(3)))/(I+m*x(1)^2))-2*m*((x(1)*x(2)*x(4))/(I+m*x(1)^2))+u/(I+m*x(1)^2)
+    ];
+
 param.Q = diag([10 1 5 1]);
 param.R = 0.01*eye(param.m);
 param.S = eye(param.n);
@@ -73,83 +80,49 @@ param.S = eye(param.n);
 OC = OptControl(param,f,x,u);
 
 % Control for infinite Horizon
-[t, xs, us, e] = OC.lqr(x0);
-
-% % Verifica Correttezza 
-% input('Verifica Correttezza - Infinite Horizon')
-% J = 0;
-% for k = 1:length(t)
-%     xk = x(k,:)';
-%     J = J + xk'*param.Q*xk + u(k)'*param.R*u(k);
-% end
-% 
-% V0 = x0'*SS*x0;
-% 
-% disp(V0-J)
+[t, xs, us, e] = OC.lqr(ft,x0,N);
 
 figure;
 subplot(2,1,1)
 plot(t,xs,LineWidth=1.5);
-xlabel('Time [s]')
-ylabel('States - x(t)')
-title('LQR (Infinite) - Zero Regulation')
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
+title('LQR (Infinite) - Zero Regulation', 'Interpreter', 'latex')
 grid
-legend('x_1(t) - Ball Position [m]', 'x_2(t) - Ball Velocity [m/s]', 'x_3(t) - Beam Angle [rad]','x_4(t) - Beam Velocity [rad/s]')
+legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 hold off
 subplot(2,1,2)
 plot(t,us,'-g',LineWidth=1.5)
-xlabel('Time [s]')
-ylabel('Input - u(t)')
-legend('u(t) - Applyed Torque [rad/s^2]')
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('Input $u(t)$', 'Interpreter', 'latex')
+legend('$u(t)$ - Applied Torque [rad/s$^2$]', 'Interpreter', 'latex', 'Location', 'best')
 grid
 
 input("")
-clear xs us t V0 J
+clear xs us t
 
 % Predictive Control for Finite Horizon
-
-ft = @(t, x, u) [x(2);
-    -(m*g/M)*sin(x(3))+(m/M)*x(1)*x(4)^2;
-    x(4);
-    -(m*g)*((x(1)*cos(x(3)))/(I+m*x(1)^2))-2*m*((x(1)*x(2)*x(4))/(I+m*x(1)^2))+u/(I+m*x(1)^2)
-    ];
-
-[t, xs, us] = OC.OLQR(ft,x0,N);
-
-% % Verifica Correttezza
-% input('Verifica Correttezza - Finite Horizon')
-% 
-% J = 0;
-% 
-% for k = 1:N-1
-%     J = J + x(:,k)'*param.Q*x(:,k) + u(k)'*param.R*u(k);
-% end
-% 
-% J = J + x(:,N)'*param.S*x(:,N);
-% 
-% V0 = x(:,1)'*P{1}*x(:,1);
-% 
-% disp(V0-J)
+[t, xs,us] = OC.OLQR(ft,x0,N);
 
 figure;
 subplot(2,1,1)
 plot(t,xs,LineWidth=1.5);
 xlabel('Time [s]')
 ylabel('States - x(t)')
-title('LQR (Model Predictive Finite) - Zero Regulation')
+title('LQR (Model Predictive Finite) - Zero Regulation', 'Interpreter','latex')
 grid
-legend('x_1(t) - Ball Position [m]', 'x_2(t) - Ball Velocity [m/s]', 'x_3(t) - Beam Angle [rad]','x_4(t) - Beam Velocity [rad/s]')
+legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 hold off
 subplot(2,1,2)
 plot(t,us,'-g',LineWidth=1.5)
-xlabel('Time [s]')
-ylabel('Input - u(t)')
-legend('u(t) - Applyed Torque [rad/s^2]')
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('Input $u(t)$', 'Interpreter', 'latex')
+legend('$u(t)$ - Applied Torque [rad/s$^2$]', 'Interpreter', 'latex', 'Location', 'best')
 grid
 
 input('Press to Polytopic Description (Unconstrained)')
 close all
-clear x t F J V0
+clear xs us t
 
 %% POLYTOPIC DESCRIPTION (Unconstrained)
 L = 0.5;
