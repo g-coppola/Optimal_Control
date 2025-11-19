@@ -107,8 +107,8 @@ clear xs us t
 figure;
 subplot(2,1,1)
 plot(t,xs,LineWidth=1.5);
-xlabel('Time [s]')
-ylabel('States - x(t)')
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
 title('LQR (Model Predictive Finite) - Zero Regulation', 'Interpreter','latex')
 grid
 legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
@@ -128,39 +128,39 @@ clear xs us t
 L = 0.5;
 th = pi/8;
 
-tspan = [0 15];
+param.tspan = [0 15];
+
+param.Q1 = eye(param.n);
+param.RR = eye(param.m);
 
 x_store = {};
 t_store = {};
+u_store = {};
 
-[A_cell,B_cell] = build_pol(param,dt,L,th);
+[A_cell,B_cell] = build_pol(param,L,th);
 
-[F,Qe] = uncostrainedRHC(A_cell,B_cell,x0);
+mpc = MPC(f_fun,param,A_cell,B_cell);
 
-[t,x] = ode45(@(t,x)f_fun(x-x_eq, u_eq + F*(x-x_eq)), tspan, x0);
+[xs, us, t, Qe] = mpc.unconstrainedRHC(x0);
 
-u = zeros(size(t));
-for i = 1:length(t)
-    u(i) = u_eq + F * (x(i,:)' - x_eq);
-end
-
-x_store{end+1}=x;
+x_store{end+1}=xs;
+u_store{end+1}=us;
 t_store{end+1}=t;
 
 figure;
 subplot(2,1,1)
-plot(t,x,LineWidth=1.5);
-xlabel('Time [s]')
-ylabel('States - x(t)')
-title('Polytopic Descrption - Unconstrained')
+plot(t,xs,LineWidth=1.5);
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
+title('Polytopic Descrption - Unconstrained','Interpreter','latex')
 grid
-legend('x_1(t) - Ball Position [m]', 'x_2(t) - Ball Velocity [m/s]', 'x_3(t) - Beam Angle [rad]','x_4(t) - Beam Velocity [rad/s]')
+legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 hold off
 subplot(2,1,2)
-plot(t,u,'-g',LineWidth=1.5)
-xlabel('Time [s]')
-ylabel('Input - u(t)')
-legend('u(t) - Applyed Torque [rad/s^2]')
+plot(t,us,'-g',LineWidth=1.5)
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('Input $u(t)$', 'Interpreter', 'latex')
+legend('$u(t)$ - Applied Torque [rad/s$^2$]', 'Interpreter', 'latex', 'Location', 'best')
 grid
 
 input('')
@@ -176,58 +176,56 @@ figure(2)
 subplot(2,1,1)
 e1_unc.bestPlot([1 0 0])
 hold on
-plot(x(:,1),x(:,2),'b','LineWidth',1.5);
-xlabel('x_1 - [m]')
-ylabel('x_2 - [m/s]')
-legend('Ellipsoid','Equilibrium Point','State Evolution')
-title('(x_1,x_2) Evolution - Uncontrained')
+plot(xs(:,1),xs(:,2),'b','LineWidth',1.5);
+plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
+hold off
+xlabel('$x_1(t)$ - [m]','Interpreter','latex')
+ylabel('$x_2(t)$ - [m/s]','Interpreter','latex')
+legend('Ellipsoid','State Evolution','Equilibrium Point','Interpreter','latex','Location','best')
+title('\big($x_1(t)$,$x_2(t)$\big) Evolution - Unconstrained','Interpreter','latex')
 
 subplot(2,1,2)
 e2_unc.bestPlot([1 0 0])
 hold on
-plot(x(:,3),x(:,4),'b','LineWidth',1.5);
-xlabel('x_3 - [rad]')
-ylabel('x_4 - [rad/s]')
-legend('Ellipsoid','Equilibrium Point','State Evolution')
-title('(x_3,x_4) Evolution - Uncontrained')
+plot(xs(:,3),xs(:,4),'b','LineWidth',1.5);
+plot(param.x_eq(3),param.x_eq(4),'ok','LineWidth',1)
+hold off
+xlabel('$x_3(t)$ - [rad]','Interpreter','latex')
+ylabel('$x_3(t)$ - [rad/s]','Interpreter','latex')
+legend('Ellipsoid','State Evolution','Equilibrium Point','Interpreter','latex','Location','best')
+title('\big($x_3(t)$,$x_4(t)$\big) Evolution - Unconstrained','Interpreter','latex')
 
 input('Press to Polytopic Description (Constrained Input)')
 close all
-clear F t u x Qe Q1 Q2
+clear F t us xs Qe Q1 Q2
 
 % POLYTOPIC DESCRIPTION (Constrained Input)
-u_max = 4.5 + u_eq;
+u_max = 4.5 + param.u_eq;
 
-[F,Qe] = constrainedRHC(A_cell,B_cell,x0,u_max);
+[xs, us, t, Qe] = mpc.constrainedInputRHC(x0,u_max);
 
-[t,x] = ode45(@(t,x)f_fun(x-x_eq,u_eq+F*(x-x_eq)),tspan,x0);
-
-u = zeros(size(t));
-for i = 1:length(t)
-    u(i) = u_eq + F * (x(i,:)' - x_eq);
-end
-
-x_store{end+1}=x;
+x_store{end+1}=xs;
+u_store{end+1}=us;
 t_store{end+1}=t;
 
 figure;
 subplot(2,1,1)
-plot(t,x,LineWidth=1.5);
-xlabel('Time [s]')
-ylabel('States - x(t)')
-title('Polytopic Descrption - Constrained Input')
+plot(t,xs,LineWidth=1.5);
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
+title('Polytopic Descrption - Constrained Input','Interpreter','latex')
 grid
-legend('x_1(t) - Ball Position [m]', 'x_2(t) - Ball Velocity [m/s]', 'x_3(t) - Beam Angle [rad]','x_4(t) - Beam Velocity [rad/s]')
+legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 hold off
 subplot(2,1,2)
-plot(t,u,'-g',LineWidth=1.5)
+plot(t,us,'-g',LineWidth=1.5)
 hold on
 yline(u_max,'--k');
 yline(-u_max,'--k')
-xlabel('Time [s]')
-ylabel('Input - u(t)')
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('Input $u(t)$', 'Interpreter', 'latex')
 ylim([-7.2 7.2])
-legend('u(t) - Applyed Torque [rad/s^2]','u_{max}','+u_{max}')
+legend('$u(t)$ - Applyed Torque [rad/s$^2$]','$u_{max}$','$-u_{max}$','Interpreter', 'latex', 'Location', 'best')
 grid
 
 input('')
@@ -243,24 +241,28 @@ figure(2)
 subplot(2,1,1)
 e1_con.bestPlot([1 0 0])
 hold on
-plot(x(:,1),x(:,2),'b','LineWidth',1.5);
-xlabel('x_1 - [m]')
-ylabel('x_2 - [m/s]')
-legend('Ellipsoid','Equilibrium Point','State Evolution')
-title('(x_1,x_2) Evolution - Contrained Input')
+plot(xs(:,1),xs(:,2),'b','LineWidth',1.5);
+plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
+hold off
+xlabel('$x_1(t)$ - [m]','Interpreter','latex')
+ylabel('$x_2(t)$ - [m/s]','Interpreter','latex')
+legend('Ellipsoid','State Evolution','Equilibrium Point','Interpreter','latex','Location','best')
+title('\big($x_1(t)$,$x_2(t)$\big) Evolution - Constrained','Interpreter','latex')
 
 subplot(2,1,2)
 e2_con.bestPlot([1 0 0])
 hold on
-plot(x(:,3),x(:,4),'b','LineWidth',1.5);
-xlabel('x_3 - [rad]')
-ylabel('x_4 - [rad/s]')
-legend('Ellipsoid','Equilibrium Point','State Evolution')
-title('(x_3,x_4) Evolution - Contrained Input')
+plot(xs(:,3),xs(:,4),'b','LineWidth',1.5);
+plot(param.x_eq(3),param.x_eq(4),'ok','LineWidth',1)
+hold off
+xlabel('$x_3(t)$ - [rad]','Interpreter','latex')
+ylabel('$x_3(t)$ - [rad/s]','Interpreter','latex')
+legend('Ellipsoid','State Evolution','Equilibrium Point','Interpreter','latex','Location','best')
+title('\big($x_3(t)$,$x_4(t)$\big) Evolution - Constrained','Interpreter','latex')
 
 input('Comparison - Unconstrained Constrained')
 close all
-clear F t u x Qe Q1 Q2
+clear F t us xs Qe Q1 Q2
 
 % COMPARISON (Unconstrained vs Constrained)
 figure(1)
@@ -269,18 +271,18 @@ plot(t_store{1},x_store{1}(:,1),'b','LineWidth',1.5)
 hold on
 plot(t_store{2},x_store{2}(:,1),'g','LineWidth',1.5)
 hold off
-legend('x_1','x_1 constrained')
-xlabel('Time [s]')
-ylabel('Position [m]')
+legend('$x_1(t)$','$x_1(t)$ constrained','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Position [m]','Interpreter','latex')
 grid
 subplot(2,2,2);
 plot(t_store{1},x_store{1}(:,2),'b','LineWidth',1.5)
 hold on
 plot(t_store{2},x_store{2}(:,2),'g','LineWidth',1.5)
 hold off
-legend('x_2','x_2 constrained')
-xlabel('Time [s]')
-ylabel('Velocity [m/s]')
+legend('$x_2(t)$','$x_2(t)$ constrained','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Velocity [m/s]','Interpreter','latex')
 grid
 
 subplot(2,2,[3 4])
@@ -289,11 +291,13 @@ hold on
 e1_con.bestPlot([1 0 0])
 plot(x_store{1}(:,1),x_store{1}(:,2),'b','LineWidth',1.5);
 plot(x_store{2}(:,1),x_store{2}(:,2),'g','LineWidth',1.5);
-xlabel('x_1')
-ylabel('x_2')
+plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
+hold off
+xlabel('$x_1(t)$','Interpreter','latex')
+ylabel('$x_2(t)$','Interpreter','latex')
 grid
-legend('Uncontrained','Equilibrium Point','Constrained','Equilibrium Point','State Evolution Unconstrained','State Evolution Constrained')
-sgtitle('(x_1,x_2) evolution - Unconstrained vs Constrained Input')
+legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex')
+sgtitle('\big($x_1(t)$,$x_2(t)$\big) Evolution - Unconstrained vs Constrained','Interpreter','latex')
 
 figure(2)
 subplot(2,2,1);
