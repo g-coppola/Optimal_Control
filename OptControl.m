@@ -4,7 +4,6 @@ classdef OptControl
         Q, R, S, SS, PP
         param
         f, xsym, usym
-        IFstore, Fstore
     end
     
     methods (Access = public)
