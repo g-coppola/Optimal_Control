@@ -33,7 +33,6 @@ r = param.r;
 param.MM = m+J/r^2;
 M = param.MM;
 
-
 f = [x(2);
     -(m*g/M)*sin(x(3))+(m/M)*x(1)*x(4)^2;
     x(4);
@@ -56,9 +55,9 @@ figure;
 plot(t,xs,LineWidth=1.5)
 xlabel('Time [s]', 'Interpreter', 'latex')
 ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-title('Free Response','Interpreter','latex')
 legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 grid
+sgtitle('Free Response','Interpreter','latex')
 
 input('Press to LQR (Zero Regulation)')
 close all   
@@ -87,7 +86,6 @@ subplot(2,1,1)
 plot(t,xs,LineWidth=1.5);
 xlabel('Time [s]', 'Interpreter', 'latex')
 ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-title('LQR (Infinite) - Zero Regulation', 'Interpreter', 'latex')
 grid
 legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 hold off
@@ -97,6 +95,8 @@ xlabel('Time [s]', 'Interpreter', 'latex')
 ylabel('Input $u(t)$', 'Interpreter', 'latex')
 legend('$u(t)$ - Applied Torque [rad/s$^2$]', 'Interpreter', 'latex', 'Location', 'best')
 grid
+
+sgtitle('LQR (Infinite) - Zero Regulation', 'Interpreter', 'latex')
 
 input("")
 clear xs us t
@@ -109,7 +109,6 @@ subplot(2,1,1)
 plot(t,xs,LineWidth=1.5);
 xlabel('Time [s]', 'Interpreter', 'latex')
 ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-title('LQR (Model Predictive Finite) - Zero Regulation', 'Interpreter','latex')
 grid
 legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 hold off
@@ -120,6 +119,8 @@ ylabel('Input $u(t)$', 'Interpreter', 'latex')
 legend('$u(t)$ - Applied Torque [rad/s$^2$]', 'Interpreter', 'latex', 'Location', 'best')
 grid
 
+sgtitle('LQR (Model Predictive Finite) - Zero Regulation', 'Interpreter','latex')
+
 input('Press to Polytopic Description (Unconstrained)')
 close all
 clear xs us t
@@ -128,7 +129,7 @@ clear xs us t
 L = 0.5;
 th = pi/8;
 
-param.tspan = [0 15];
+param.tspan = [0 8];
 
 param.Q1 = eye(param.n);
 param.RR = eye(param.m);
@@ -138,8 +139,9 @@ t_store = {};
 u_store = {};
 
 [A_cell,B_cell] = build_pol(param,L,th);
+C = eye(param.n);
 
-mpc = MPC(f_fun,param,A_cell,B_cell);
+mpc = MPC(f_fun,ft,param,A_cell,B_cell,C);
 
 [xs, us, t, Qe] = mpc.unconstrainedRHC(x0);
 
@@ -152,7 +154,6 @@ subplot(2,1,1)
 plot(t,xs,LineWidth=1.5);
 xlabel('Time [s]', 'Interpreter', 'latex')
 ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-title('Polytopic Descrption - Unconstrained','Interpreter','latex')
 grid
 legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 hold off
@@ -162,6 +163,8 @@ xlabel('Time [s]', 'Interpreter', 'latex')
 ylabel('Input $u(t)$', 'Interpreter', 'latex')
 legend('$u(t)$ - Applied Torque [rad/s$^2$]', 'Interpreter', 'latex', 'Location', 'best')
 grid
+
+sgtitle('Polytopic Descrption - Unconstrained','Interpreter','latex')
 
 input('')
 
@@ -201,7 +204,6 @@ clear F t us xs Qe Q1 Q2
 
 % POLYTOPIC DESCRIPTION (Constrained Input)
 u_max = 4.5 + param.u_eq;
-
 [xs, us, t, Qe] = mpc.constrainedInputRHC(x0,u_max);
 
 x_store{end+1}=xs;
@@ -213,7 +215,6 @@ subplot(2,1,1)
 plot(t,xs,LineWidth=1.5);
 xlabel('Time [s]', 'Interpreter', 'latex')
 ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-title('Polytopic Descrption - Constrained Input','Interpreter','latex')
 grid
 legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
 hold off
@@ -225,8 +226,10 @@ yline(-u_max,'--k')
 xlabel('Time [s]', 'Interpreter', 'latex')
 ylabel('Input $u(t)$', 'Interpreter', 'latex')
 ylim([-7.2 7.2])
-legend('$u(t)$ - Applyed Torque [rad/s$^2$]','$u_{max}$','$-u_{max}$','Interpreter', 'latex', 'Location', 'best')
+legend('$u(t)$ - Applied Torque [rad/s$^2$]','$u_{max}$','$-u_{max}$','Interpreter', 'latex', 'Location', 'best')
 grid
+
+sgtitle('Polytopic Descrption - Constrained Input','Interpreter','latex')
 
 input('')
 
@@ -296,7 +299,7 @@ hold off
 xlabel('$x_1(t)$','Interpreter','latex')
 ylabel('$x_2(t)$','Interpreter','latex')
 grid
-legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex')
+legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex','Location','best')
 sgtitle('\big($x_1(t)$,$x_2(t)$\big) Evolution - Unconstrained vs Constrained','Interpreter','latex')
 
 figure(2)
@@ -305,18 +308,18 @@ plot(t_store{1},x_store{1}(:,3),'b','LineWidth',1.5)
 hold on
 plot(t_store{2},x_store{2}(:,3),'g','LineWidth',1.5)
 hold off
-legend('x_3','x_3 constrained')
-xlabel('Time [s]')
-ylabel('Position [rad]')
+legend('$x_3(t)$','$x_3(t)$ constrained','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Position [rad]','Interpreter','latex')
 grid
 subplot(2,2,2);
 plot(t_store{1},x_store{1}(:,4),'b','LineWidth',1.5)
 hold on
 plot(t_store{2},x_store{2}(:,4),'g','LineWidth',1.5)
 hold off
-legend('x_4','x_4 constrained')
-xlabel('Time [s]')
-ylabel('Angular Velocity [rad/s]')
+legend('$x_4(t)$','$x_4(t)$ constrained','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Angular Velocity [rad/s]','Interpreter','latex')
 grid
 
 subplot(2,2,[3 4])
@@ -325,70 +328,92 @@ hold on
 e2_con.bestPlot([1 0 0])
 plot(x_store{1}(:,3),x_store{1}(:,4),'b','LineWidth',1.5);
 plot(x_store{2}(:,3),x_store{2}(:,4),'g','LineWidth',1.5);
-xlabel('x_3')
-ylabel('x_4')
+plot(param.x_eq(3),param.x_eq(4),'ok','LineWidth',1)
+xlabel('$x_3(t)$','Interpreter','latex')
+ylabel('$x_4(t)$','Interpreter','latex')
 grid
-legend('Uncontrained','Equilibrium Point','Constrained','Equilibrium Point','State Evolution Unconstrained','State Evolution Constrained')
-sgtitle('(x_3,x_4) evolution - Unconstrained vs Constrained Input')
+legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex')
+sgtitle('\big($x_3(t)$,$x_4(t)$\big) Evolution - Unconstrained vs Constrained','Interpreter','latex')
+
+figure(3)
+plot(t_store{1},u_store{1},'b','LineWidth',1.5);
+hold on
+plot(t_store{2},u_store{2},'g','LineWidth',1.5);
+yline(u_max,'--k');
+yline(-u_max,'--k')
+xlabel('Time [s]', 'Interpreter', 'latex')
+ylabel('Input - $u(t)$', 'Interpreter', 'latex')
+ylim([-5 5])
+legend('$u(t)$','$u(t)$ constrained','$u_{max}$','$-u_{max}$','Interpreter','latex','Location','best')
+grid
+sgtitle('Input Unconstrained vs Input Constrained','Interpreter','latex')
 
 input('Component Wise Constraints')
 close all
 
 % POLYTOPIC DESCRIPTION (Component Wise Constraints)
 y_max = [0.2 0.32 0.18 0.76]';
-[F,Qe] = compWiseCon(A_cell,B_cell,C,x0,y_max,u_max);
-
-[t,x] = ode45(@(t,x)f_fun(x-x_eq,u_eq+F*(x-x_eq)),tspan,x0);
-
-u = zeros(size(t));
-for i = 1:length(t)
-    u(i) = u_eq + F * (x(i,:)' - x_eq);
-end
+[xs, us, t, Qe] = mpc.compWiseOutputRHC(x0,u_max,y_max);
 
 figure;
 subplot(2,2,1)
-plot(t,x(:,1),'-b',LineWidth=1.5);
+plot(t,xs(:,1),'-b',LineWidth=1.5);
 hold on
 yline(-y_max(1),'--k')
 yline(y_max(1),'--k')
 ylim([-0.32 0.32])
-legend('x_1 evolution','- y_{max,1}','y_{max,1}')
-xlabel('Time [s]')
-ylabel('Position [m]')
+legend('$x_1(t)$ evolution','$-y_{max,1}$','$y_{max,1}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Position [m]','Interpreter','latex')
 grid
 
 subplot(2,2,2)
-plot(t,x(:,2),'-b',LineWidth=1.5);
+plot(t,xs(:,2),'-b',LineWidth=1.5);
 hold on
 yline(-y_max(2),'--k')
 yline(y_max(2),'--k')
 ylim([-0.7 0.7])
-legend('x_2 evolution','- y_{max,2}','y_{max,2}')
-xlabel('Time [s]')
-ylabel('Velocity [m/s]')
+legend('$x_2(t)$ evolution','$-y_{max,2}$','$y_{max,2}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Velocity [m/s]','Interpreter','latex')
 grid
 
 subplot(2,2,3)
-plot(t,x(:,3),'-b',LineWidth=1.5);
+plot(t,xs(:,3),'-b',LineWidth=1.5);
 hold on
 yline(-y_max(3),'--k')
 yline(y_max(3),'--k')
 ylim([-0.31 0.31])
-legend('x_3 evolution','- y_{max,3}','y_{max,3}')
-xlabel('Time [s]')
-ylabel('Angle [rad]')
+legend('$x_3(t)$ evolution','$-y_{max,3}$','$y_{max,3}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Position [rad]','Interpreter','latex')
 grid
 
 subplot(2,2,4)
-plot(t,x(:,4),'-b',LineWidth=1.5);
+plot(t,xs(:,4),'-b',LineWidth=1.5);
 hold on
 yline(-y_max(4),'--k')
 yline(y_max(4),'--k')
 ylim([-1 1])
-legend('x_4 evolution','- y_{max,4}','y_{max,4}')
-xlabel('Time [s]')
-ylabel('Angular Velocity [rad/s]')
+legend('$x_4(t)$ evolution','$-y_{max,4}$','$y_{max,4}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Angular Velocity [rad/s]','Interpreter','latex')
 grid
+
+sgtitle('State Evolution under Constrains','Interpreter','latex')
+
+figure
+plot(t,us,'-g',LineWidth=1.5)
+hold on
+yline(u_max,'--k');
+yline(-u_max,'--k')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Input - $u(t)$','Interpreter','latex')
+ylim([-7.2 7.2])
+legend('$u(t)$ - Applied Torque [rad/s$^2$]','$u_{max}$','-$u_{max}$','Interpreter','latex')
+grid
+
+sgtitle('Input $u(t)$ Constrained under State Constrains','Interpreter','latex')
 
 % ELLIPSOID (Component Wise Constraints)
 
@@ -399,51 +424,48 @@ e1_ccon = ell(Q1);
 e2_ccon = ell(Q2);
 
 figure
-plot(t,u,'-g',LineWidth=1.5)
-hold on
-yline(u_max,'--k');
-yline(-u_max,'--k')
-xlabel('Time [s]')
-ylabel('Input - u(t)')
-ylim([-7.2 7.2])
-legend('u(t) - Applyed Torque [rad/s^2]','u_{max}','+u_{max}')
-grid
-
-figure
 subplot(2,1,1)
 e1_unc.bestPlot([0.7 0.7 0.7],1)
 hold on
 e1_ccon.bestPlot([1 0 0])
 plot(x_store{1}(:,1),x_store{1}(:,2),'b','LineWidth',1.5);
-plot(x(:,1),x(:,2),'g','LineWidth',1.5);
+plot(xs(:,1),xs(:,2),'g','LineWidth',1.5);
+plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
 rectangle('Position',[-y_max(1),-y_max(2), 2*y_max(1),2*y_max(2)],'EdgeColor', [1 0.5 0],'LineStyle','--','LineWidth',1.5)
-xlabel('x_1')
-ylabel('x_2')
+hold off
+xlabel('$x_1(t)$','Interpreter','latex')
+ylabel('$x_2(t)$','Interpreter','latex')
 grid
-legend('Uncontrained','Equilibrium Point','Constrained','Equilibrium Point','State Evolution Unconstrained','State Evolution Constrained')
+legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex')
+title('\big($x_1(t)$,$x_2(t)$\big) Evolution - Constrained Input and State','Interpreter','latex')
 
 subplot(2,1,2)
 e2_unc.bestPlot([0.7 0.7 0.7],1)
 hold on
 e2_ccon.bestPlot([1 0 0])
 plot(x_store{1}(:,3),x_store{1}(:,4),'b','LineWidth',1.5);
-plot(x(:,3),x(:,4),'g','LineWidth',1.5);
+plot(xs(:,3),xs(:,4),'g','LineWidth',1.5);
+plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
 rectangle('Position',[-y_max(3),-y_max(4), 2*y_max(3),2*y_max(4)],'EdgeColor', [1 0.5 0],'LineStyle','--','LineWidth',1.5)
-
-xlabel('x_3')
-ylabel('x_4')
+hold off
+xlabel('$x_3(t)$','Interpreter','latex')
+ylabel('$x_4(t)$','Interpreter','latex')
 grid
-legend('Uncontrained','Equilibrium Point','Constrained','Equilibrium Point','State Evolution Unconstrained','State Evolution Constrained')
+legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex')
+title('\big($x_3(t)$,$x_4(t)$\big) Evolution - Constrained Input and State','Interpreter','latex')
 
-input('Online Phase!!')
-close all;
+input('Dual Mode Phase!')
+close all
+clear  t us xs Qe Q1 Q2 
+
 
 %% ONLINE MPC SIMULATION - DUAL MODE CONTROLLER
+xN = x0;
+[F,P] = mpc.offLine_phase(xN,u_max,y_max);
+clear x0 u_max y_max
 
 N = 80;
 h = 12;
-
-P = inv(Qe);
 
 Q = diag([10 10 0.1 0.1]);
 R = 0.1;
@@ -451,117 +473,32 @@ R = 0.1;
 u_max = 10;
 y_max = [0.8 1.5 pi/4 1.7]'; 
 
-x_online = zeros(param.n,N+1);
 x0 = [0.6, 0, pi/8, 0]';
-x_online(:,1) = x0;
-xk = x0; 
 
-
-lb_X = repmat(-y_max, h + 1, 1);
-ub_X = repmat(y_max, h + 1, 1);
-
-lb_U = repmat(-u_max * ones(param.m, 1), h, 1);
-ub_U = repmat(u_max * ones(param.m, 1), h, 1);
-
-lb = [lb_X; lb_U]; 
-ub = [ub_X; ub_U];
-
-Aineq = [];
-bineq = [];
-Aeq = [];
-beq = [];
-
-options = optimoptions('fmincon', 'Algorithm', 'sqp', 'Display', 'iter');
-
-U0 = zeros(param.m,h);
-X0 = zeros(param.n,h+1);
-X0(:,1) = xk;
-
-x_sim = xk;
-for k = 1:h
-    u_sim = U0(:, k);
-    dx = ft(0, x_sim, u_sim);
-    x_sim = x_sim + dt*dx;
-    X0(:, k+1) = x_sim;
-end
-
-Z0 = [X0(:); U0(:)];
-
-u_online = zeros(param.m, N);
-
-n = param.n; 
-m = param.m;
-
-%ccc = zeros(2,h);
-
-for k = 1:N
-    %ccc(:,k) = [e1_ccon.isInternal([xk(1);xk(2)]); e2_ccon.isInternal([xk(3);xk(4)])]
-   
-    if k>h
-        uk = F*xk;
-    else
-          
-    [Z_ottimo, ~, exitflag, ~] = fmincon(@(Z)objFunct(Z,h,A_cell,B_cell,Q,R,P,param),Z0,Aineq, bineq, Aeq, beq, lb, ub,@(Z)nonLinConstraints(Z,xk,A_cell,B_cell,h,P,dt,ft,param),options);
-    
-    uk = zeros(m,1); 
-    
-    if exitflag > 0
-        num_X_vars = n * (h + 1);
-        
-        
-        X_opt_vec = Z_ottimo(1:num_X_vars);
-        U_opt_vec = Z_ottimo(num_X_vars + 1 : end);
-        
-        X_opt = reshape(X_opt_vec, n, h + 1);
-        U_opt = reshape(U_opt_vec, m, h);
-
-        uk = U_opt(:, 1); 
-
-        x_opt_pr = [X_opt(:, 2:end), X_opt(:, end)];
-        u_opt_pr = [U_opt(:, 2:end), U_opt(:, end)];
-
-        Z0 = [x_opt_pr(:); u_opt_pr(:)];
-        
-    else
-        fprintf('Attenzione: fmincon non ha trovato una soluzione ottimale alla iterazione %d\n', k);
-        uk = zeros(m,1);
-    end
-    end
-    
-    u_online(:,k) = uk;
-    
-    dx = ft(0,xk,uk);
-    x_online(:,k+1) = xk+dt*dx;
-
-    xk = x_online(:,k+1); 
-
-    Z0(1:n) = xk;
-end
-
+[x_online, u_online, t_online, tu] = mpc.onLine_phase(ft,x0,u_max,y_max,Q,R,N,h,F,P);
 
 figure
 subplot(2,1,1)
 hold on
 e1_ccon.bestPlot([1 0 0]);
 plot(x_online(1,:),x_online(2,:),'g','LineWidth',1.5);
+plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
 rectangle('Position',[-y_max(1),-y_max(2), 2*y_max(1),2*y_max(2)],'EdgeColor', [1 0.5 0],'LineStyle','--','LineWidth',1.5)
-xlabel('x_1')
-ylabel('x_2')
-legend('Ellipsoid','Equilibrium Point','State Evolution')
+xlabel('$x_1(t)$','Interpreter','latex')
+ylabel('$x_2(t)$','Interpreter','latex')
+legend('Ellipsoid','State Evolution','Equilibrium Point','Interpreter','latex')
 grid on
 
 subplot(2,1,2)
 hold on
 e2_ccon.bestPlot([1 0 0]);
 plot(x_online(3,:),x_online(4,:),'g','LineWidth',1.5);
+plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
 rectangle('Position', [-y_max(3), -y_max(4), 2*y_max(3), 2*y_max(4)],'EdgeColor', [1 0.5 0],'LineStyle', '--', 'LineWidth', 1.5)
-xlabel('x_3')
-ylabel('x_4')
-legend('Ellipsoid','Equilibrium Point','State Evolution')
+xlabel('$x_3(t)$','Interpreter','latex')
+ylabel('$x_4(t)$','Interpreter','latex')
+legend('Ellipsoid','State Evolution','Equilibrium Point','Interpreter','latex')
 grid on
-
-t_online = 0:dt:(N*dt);
-tu = 0:dt:((N-1)*dt);
 
 figure;
 subplot(2,2,1)
@@ -570,9 +507,9 @@ hold on
 yline(-y_max(1),'--k')
 yline(y_max(1),'--k')
 ylim([-1.7 1.7])
-legend('x_1 evolution','- y_{max,1}','y_{max,1}')
-xlabel('Time [s]')
-ylabel('Position [m]')
+legend('$x_1(t)$ evolution','$-y_{max,1}$','$y_{max,1}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Position [m]','Interpreter','latex')
 grid
 
 subplot(2,2,2)
@@ -581,9 +518,9 @@ hold on
 yline(-y_max(2),'--k')
 yline(y_max(2),'--k')
 ylim([-1.9 1.9])
-legend('x_2 evolution','- y_{max,2}','y_{max,2}')
-xlabel('Time [s]')
-ylabel('Velocity [m/s]')
+legend('$x_2(t)$ evolution','$-y_{max,2}$','$y_{max,2}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Velocity [m/s]','Interpreter','latex')
 grid
 
 subplot(2,2,3)
@@ -592,9 +529,9 @@ hold on
 yline(-y_max(3),'--k')
 yline(y_max(3),'--k')
 ylim([-1.5 1.5])
-legend('x_3 evolution','- y_{max,3}','y_{max,3}')
-xlabel('Time [s]')
-ylabel('Angle [rad]')
+legend('$x_3(t)$ evolution','$-y_{max,3}$','$y_{max,3}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Position [rad]','Interpreter','latex')
 grid
 
 subplot(2,2,4)
@@ -603,21 +540,22 @@ hold on
 yline(-y_max(4),'--k')
 yline(y_max(4),'--k')
 ylim([-1.9 1.9])
-legend('x_4 evolution','- y_{max,4}','y_{max,4}')
-xlabel('Time [s]')
-ylabel('Angular Velocity [rad/s]')
+legend('$x_4(t)$ evolution','$-y_{max,4}$','$y_{max,4}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Angular Velocity [rad/s]','Interpreter','latex')
 grid
 
-sgtitle('x(t) - States Evolutions')
+sgtitle('$x(t)$ - States Evolutions of MPC Algorithm','Interpreter','latex')
 
 figure
 plot(tu,u_online,'-g',LineWidth=1.5)
 hold on
 yline(u_max,'--k');
 yline(-u_max,'--k')
-xlabel('Time [s]')
-ylabel('Input - u(t)')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Input - $u(t)$','Interpreter','latex')
 ylim([-11.5 11.5])
-legend('u(t)','u_{max}','+u_{max}')
-title('u(t) - Applyed Torque [rad/s^2]')
+legend('$u(t)$','$u_{max}$','$-u_{max}$','Interpreter','latex')
 grid
+
+sgtitle('$u(t)$ - Applied Torque [rad/s$^2$]','Interpreter','latex')
