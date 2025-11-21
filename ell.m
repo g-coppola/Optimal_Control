@@ -59,13 +59,13 @@ classdef ell
 
             if bool == 0
                 plot(x(1,:),x(2,:),'Color',color,'LineWidth',1)
-                hold on
-                plot(obj.q(1),obj.q(2),'ob','LineWidth',1)
+                %hold on
+                %plot(obj.q(1),obj.q(2),'ob','LineWidth',1)
                 grid
             else
                 plot(x(1,:),x(2,:),'Color',color,'LineWidth',1,'LineStyle', '--')
-                hold on
-                plot(obj.q(1),obj.q(2),'ob','LineWidth',1)
+                %hold on
+                %plot(obj.q(1),obj.q(2),'ob','LineWidth',1)
                 grid
             end
             

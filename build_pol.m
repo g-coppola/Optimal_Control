@@ -1,4 +1,4 @@
-function [A_cell,B_cell] = build_pol(param,dt,L,th)
+function [A_cell,B_cell] = build_pol(param,L,th)
 s_max = 1;
 s_min = sin(th)/th;
 
@@ -39,7 +39,7 @@ for i = 0:(num_vert - 1)
     B_temp(4, 1) = phi3_val;
     
     sysc = ss(A_temp,B_temp,eye(n),0);
-    ssd = c2d(sysc, dt, 'zoh');
+    ssd = c2d(sysc, param.dt, 'zoh');
 
     A_cell{i+1} = ssd.A;
     B_cell{i+1} = ssd.B;
