@@ -137,7 +137,7 @@ x_store = {};
 t_store = {};
 u_store = {};
 
-[A_cell,B_cell] = build_pol(param,f,x1_vals,x,u);
+[A_cell,B_cell] = build_pol(param,f,x1_vals);
 % C = eye(param.n);
 % 
 % mpc = MPC(f_fun,ft,param,A_cell,B_cell,C);
@@ -453,3 +453,108 @@ u_store = {};
 % legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex')
 % title('\big($x_3(t)$,$x_4(t)$\big) Evolution - Constrained Input and State','Interpreter','latex')
 
+input('Dual Mode Phase!')
+close all
+clear  t us xs Qe Q1 Q2 
+
+
+%% ONLINE MPC SIMULATION - DUAL MODE CONTROLLER
+xN = x0;
+[F,P] = mpc.offLine_phase(xN,u_max,y_max);
+clear x0 u_max y_max
+
+N = 80;
+h = 12;
+
+Q = diag([10 10 0.1 0.1]);
+R = 0.1;
+
+u_max = 10;
+y_max = [0.8 1.5 pi/4 1.7]'; 
+
+x0 = [0.6, 0, pi/8, 0]';
+
+[x_online, u_online, t_online, tu] = mpc.onLine_phase(ft,x0,u_max,y_max,Q,R,N,h,F,P);
+
+figure
+subplot(2,1,1)
+hold on
+e1_ccon.bestPlot([1 0 0]);
+plot(x_online(1,:),x_online(2,:),'g','LineWidth',1.5);
+plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
+rectangle('Position',[-y_max(1),-y_max(2), 2*y_max(1),2*y_max(2)],'EdgeColor', [1 0.5 0],'LineStyle','--','LineWidth',1.5)
+xlabel('$x_1(t)$','Interpreter','latex')
+ylabel('$x_2(t)$','Interpreter','latex')
+legend('Ellipsoid','State Evolution','Equilibrium Point','Interpreter','latex')
+grid on
+
+subplot(2,1,2)
+hold on
+e2_ccon.bestPlot([1 0 0]);
+plot(x_online(3,:),x_online(4,:),'g','LineWidth',1.5);
+plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
+rectangle('Position', [-y_max(3), -y_max(4), 2*y_max(3), 2*y_max(4)],'EdgeColor', [1 0.5 0],'LineStyle', '--', 'LineWidth', 1.5)
+xlabel('$x_3(t)$','Interpreter','latex')
+ylabel('$x_4(t)$','Interpreter','latex')
+legend('Ellipsoid','State Evolution','Equilibrium Point','Interpreter','latex')
+grid on
+
+figure;
+subplot(2,2,1)
+plot(t_online,x_online(1,:),'-b',LineWidth=1.5);
+hold on
+yline(-y_max(1),'--k')
+yline(y_max(1),'--k')
+ylim([-1.7 1.7])
+legend('$x_1(t)$ evolution','$-y_{max,1}$','$y_{max,1}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Position [m]','Interpreter','latex')
+grid
+
+subplot(2,2,2)
+plot(t_online,x_online(2,:),'-b',LineWidth=1.5);
+hold on
+yline(-y_max(2),'--k')
+yline(y_max(2),'--k')
+ylim([-1.9 1.9])
+legend('$x_2(t)$ evolution','$-y_{max,2}$','$y_{max,2}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Velocity [m/s]','Interpreter','latex')
+grid
+
+subplot(2,2,3)
+plot(t_online,x_online(3,:),'-b',LineWidth=1.5);
+hold on
+yline(-y_max(3),'--k')
+yline(y_max(3),'--k')
+ylim([-1.5 1.5])
+legend('$x_3(t)$ evolution','$-y_{max,3}$','$y_{max,3}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Position [rad]','Interpreter','latex')
+grid
+
+subplot(2,2,4)
+plot(t_online,x_online(4,:),'-b',LineWidth=1.5);
+hold on
+yline(-y_max(4),'--k')
+yline(y_max(4),'--k')
+ylim([-1.9 1.9])
+legend('$x_4(t)$ evolution','$-y_{max,4}$','$y_{max,4}$','Interpreter','latex')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Angular Velocity [rad/s]','Interpreter','latex')
+grid
+
+sgtitle('$x(t)$ - States Evolutions of MPC Algorithm','Interpreter','latex')
+
+figure
+plot(tu,u_online,'-g',LineWidth=1.5)
+hold on
+yline(u_max,'--k');
+yline(-u_max,'--k')
+xlabel('Time [s]','Interpreter','latex')
+ylabel('Input - $u(t)$','Interpreter','latex')
+ylim([-11.5 11.5])
+legend('$u(t)$','$u_{max}$','$-u_{max}$','Interpreter','latex')
+grid
+
+sgtitle('$u(t)$ - Applied Torque [rad/s$^2$]','Interpreter','latex')
