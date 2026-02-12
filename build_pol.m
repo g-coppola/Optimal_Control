@@ -1,6 +1,7 @@
-function [A_cell,B_cell] = build_pol(param,f,x1_vals,x,u)
+function [A_cell,B_cell] = build_pol(param,f,xeq_vals,x,u)
 g = param.g;
 m = param.M;
+
 n = param.n;
 dt = param.dt;
 
@@ -10,14 +11,15 @@ B_tilde = jacobian(f,u);
 A_eq = matlabFunction(A_tilde,'Vars',{x,u});
 B_eq = matlabFunction(B_tilde,'Vars',{x,u});
 
-nVert = length(x1_vals);
+nVert = length(xeq_vals);
 
 A_cell = cell(1,nVert);
 B_cell = cell(1,nVert);
 
 for i = 1:nVert
-    xt = [x1_vals{i}, 0, 0, 0]';
-    ut = m*g*x1_vals{i}*cos(0);
+    x1eq = xeq_vals{i};
+    xt = [x1eq, 0, 0, 0]';
+    ut = m*g*x1eq;
     At = A_eq(xt,ut);
     Bt = B_eq(xt,ut);
 
