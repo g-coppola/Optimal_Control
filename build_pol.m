@@ -1,50 +1,34 @@
-function [A_cell,B_cell] = build_pol(param,L,th)
-s_max = 1;
-s_min = sin(th)/th;
-
-c_max = cos(0);
-c_min = cos(th);
-
-I = param.I;
+function [A_cell,B_cell] = build_pol(param,f,xeq_vals,x,u)
 g = param.g;
 m = param.M;
-M = param.MM;
+
 n = param.n;
+dt = param.dt;
 
-d_max = 1/I;
-d_min = 1/(I+M*L^2);
+A_tilde = jacobian(f,x);
+B_tilde = jacobian(f,u);
 
-num_params = 3;
-num_vert = 2^num_params;
+A_eq = matlabFunction(A_tilde,'Vars',{x,u});
+B_eq = matlabFunction(B_tilde,'Vars',{x,u});
 
-A_cell = cell(1, num_vert);
-B_cell = cell(1, num_vert);
+nVert = length(xeq_vals);
 
+A_cell = cell(1,nVert);
+B_cell = cell(1,nVert);
 
+for i = 1:nVert
+    x1eq = xeq_vals{i};
+    xt = [x1eq, 0, 0, 0]';
+    ut = m*g*x1eq;
+    At = A_eq(xt,ut);
+    Bt = B_eq(xt,ut);
 
-for i = 0:(num_vert - 1)
-    bin_comb = dec2bin(i, num_params);
-    
-    if bin_comb(3) == '0', phi1_val = s_min; else, phi1_val = s_max; end
-    if bin_comb(2) == '0', phi2_val = c_min; else, phi2_val = c_max; end
-    if bin_comb(1) == '0', phi3_val = d_min; else, phi3_val = d_max; end
-    
-    A_temp = zeros(4, 4);
-    A_temp(1, 2) = 1;
-    A_temp(2, 3) = -(m*g/M) * phi1_val;
-    A_temp(3, 4) = 1;
-    A_temp(4, 1) = -m*g * phi2_val * phi3_val;
-    
-    B_temp = zeros(4, 1);
-    B_temp(4, 1) = phi3_val;
-    
-    sysc = ss(A_temp,B_temp,eye(n),0);
-    ssd = c2d(sysc, param.dt, 'zoh');
+    sys = ss(At,Bt,eye(n),0);
+    sysd = c2d(sys, dt, 'zoh');
 
-    A_cell{i+1} = ssd.A;
-    B_cell{i+1} = ssd.B;
-
-    
+    A_cell{i} = sysd.A;
+    B_cell{i} = sysd.B; 
 end
+
 end
 
