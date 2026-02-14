@@ -41,10 +41,10 @@ classdef MPC
             end
 
             % % Define solver options
-            % options = sdpsettings('solver', 'sedumi', 'verbose', 0);
+            options = sdpsettings('solver', 'sdpt3', 'verbose', 0);
 
             % Solve the optimization problem
-            sol = optimize(con, gamma);
+            sol = optimize(con, gamma, options);
             
             % Check if the problem is solved
             if sol.problem == 0
@@ -83,7 +83,7 @@ classdef MPC
             con = [con, [u_max^2*eye(m) Y; Y' Q]>=0];
             
             % Define solver options
-            options = sdpsettings('solver', 'sedumi', 'verbose', 0, 'debug', 1);
+            options = sdpsettings('solver', 'sdpt3', 'verbose', 0);
             % Solve the optimization problem
             sol = optimize(con, gamma, options);
             % Check if the problem is solved
@@ -131,7 +131,7 @@ classdef MPC
             con = [con, [u_max^2*eye(m) Y; Y' Q]>=0];
             
             % Define solver options
-            options = sdpsettings('solver', 'sedumi', 'verbose', 0);
+            options = sdpsettings('solver', 'sdpt3', 'verbose', 0);
             % Solve the optimization problem
             sol = optimize(con, gamma, options);
             % Check if the problem is solved
