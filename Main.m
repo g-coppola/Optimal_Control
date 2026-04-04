@@ -16,6 +16,10 @@ param.r = 0.05;
 param.m = 1;
 param.n = 4;
 
+% Projection Matrices
+B1 = [1 0 0 0; 0 1 0 0]; 
+B2 = [0 0 1 0; 0 0 0 1];
+
 % Sampling Time
 param.dt = 0.1;
 
@@ -30,13 +34,13 @@ g = param.g;
 m = param.M;
 J = param.J;
 r = param.r;
-param.MM = m+J/r^2;
+param.MM = m+(J/r^2);
 M = param.MM;
 
 f = [x(2);
-    -(m*g/M)*sin(x(3))+(m/M)*x(1)*x(4)^2;
+    (1/M)*(m*x(1)*x(4)^2-m*g*sin(x(3)));
     x(4);
-    (1/(m+x(1)^2))*(u-2*m*x(1)*x(2)*x(4)-m*g*x(1)*cos(x(3)))
+    (1/(I+(m*x(1)^2)))*(u-2*m*x(1)*x(2)*x(4)-m*g*x(1)*cos(x(3)))
     ];
 
 % Equilibrium
@@ -44,20 +48,50 @@ param.x_eq = [0 0 0 0]';
 param.u_eq = 0;
 
 % Initial Conditions
-x0 = param.x_eq + [0.15 0 0 0]';
+x0 = [0.15 0 0 0]';
 
 %% FREE RESPONSE
 f_fun = matlabFunction(f,'Vars',{x,u});
 
 [t,xs] = ode45(@(t,x)f_fun(x,0),param.tspan,x0);
 
-figure;
-plot(t,xs,LineWidth=1.5)
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
-grid
-sgtitle('Free Response','Interpreter','latex')
+fig = figure('Units', 'inches');
+
+color = [0, 0.447, 0.741]; % unico colore
+
+set(gcf, 'Color', 'w');
+
+titles = {...
+    '$x_1(t)$ - Ball Position [m]', ...
+    '$x_2(t)$ - Ball Velocity [m/s]', ...
+    '$x_3(t)$ - Beam Angle [rad]', ...
+    '$x_4(t)$ - Beam Velocity [rad/s]'};
+
+for i = 1:4
+    subplot(4,1,i);
+    plot(t, xs(:,i), 'Color', color, 'LineWidth', 2);
+    
+    title(titles{i}, 'Interpreter', 'latex', 'FontSize', 12)
+    
+    grid on;
+    set(gca, ...
+        'FontSize', 11, ...
+        'FontName', 'Times New Roman', ...
+        'XMinorGrid', 'on', ...
+        'YMinorGrid', 'on', ...
+        'GridAlpha', 0.2, ...
+        'TickLabelInterpreter', 'latex', ...
+        'Box', 'on', ...
+        'LineWidth', 1);
+    
+    if i ~= 4
+        set(gca, 'XTickLabel', []);
+    else
+        xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 13);
+    end
+end
+
+sgtitle('\textbf{System Free Response}', 'Interpreter', 'latex', 'FontSize', 15);
 
 input('Press to LQR (Zero Regulation)')
 close all   
@@ -77,22 +111,66 @@ OC = OptControl(param,f,x,u);
 % Control for infinite Horizon
 [t, xs, us, e] = OC.lqr(ft,x0,N);
 
-figure;
-subplot(2,1,1)
-plot(t,xs,LineWidth=1.5);
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-grid
-legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
-hold off
-subplot(2,1,2)
-plot(t,us,'-g',LineWidth=1.5)
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('Input $u(t)$', 'Interpreter', 'latex')
-legend('$u(t)$ - Applied Torque [rad/s$^2$]', 'Interpreter', 'latex', 'Location', 'best')
-grid
+% Plot
+fig = figure('Units', 'inches'); 
 
-sgtitle('LQR (Infinite) - Zero Regulation', 'Interpreter', 'latex')
+colors = [0, 0.447, 0.741]; 
+input_color = [0.1, 0.6, 0.2];
+
+tlo = tiledlayout(4, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+state_titles = {...
+    '$x_1(t)$ - Ball Position [m]', ...
+    '$x_2(t)$ - Ball Velocity [m/s]', ...
+    '$x_3(t)$ - Beam Angle [rad]', ...
+    '$x_4(t)$ - Beam Velocity [rad/s]'};
+
+for i = 1:4
+    nexttile((i-1)*2 + 1);
+    
+    plot(t, xs(i,:), 'Color', colors, 'LineWidth', 2);
+    
+    title(state_titles{i}, 'Interpreter', 'latex', 'FontSize', 11);
+    
+    grid on;
+    set(gca, ...
+        'FontName', 'Times New Roman', ...
+        'FontSize', 11, ...
+        'XMinorGrid', 'on', ...
+        'YMinorGrid', 'on', ...
+        'GridAlpha', 0.15, ...
+        'TickLabelInterpreter', 'latex', ...
+        'Box', 'on');
+    
+    if i ~= 4
+        set(gca, 'XTickLabel', []);
+    else
+        xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+    end
+end
+
+ax_input = nexttile(2);
+ax_input.Layout.TileSpan = [4 1];
+
+plot(t, us, 'Color', input_color, 'LineWidth', 2);
+
+title('$u(t)$ - Applied Torque', 'Interpreter', 'latex', 'FontSize', 12);
+xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+ylabel('$u(t)$', 'Interpreter', 'latex', 'FontSize', 12);
+
+grid on;
+set(gca, ...
+    'FontName', 'Times New Roman', ...
+    'FontSize', 11, ...
+    'XMinorGrid', 'on', ...
+    'YMinorGrid', 'on', ...
+    'GridAlpha', 0.15, ...
+    'TickLabelInterpreter', 'latex', ...
+    'Box', 'on');
+
+title(tlo, '\textbf{LQR (Infinite) - Zero Regulation}', ...
+    'Interpreter', 'latex', 'FontSize', 15);
+
 
 input("")
 clear xs us t
@@ -100,30 +178,74 @@ clear xs us t
 % Predictive Control for Finite Horizon
 [t, xs,us] = OC.OLQR(ft,x0,N);
 
-figure;
-subplot(2,1,1)
-plot(t,xs,LineWidth=1.5);
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-grid
-legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
-hold off
-subplot(2,1,2)
-plot(t,us,'-g',LineWidth=1.5)
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('Input $u(t)$', 'Interpreter', 'latex')
-legend('$u(t)$ - Applied Torque [rad/s$^2$]', 'Interpreter', 'latex', 'Location', 'best')
-grid
+% Plot
+fig = figure('Units', 'inches'); 
 
-sgtitle('LQR (Model Predictive Finite) - Zero Regulation', 'Interpreter','latex')
+colors = [0, 0.447, 0.741]; 
+input_color = [0.1, 0.6, 0.2];
+
+tlo = tiledlayout(4, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+state_titles = {...
+    '$x_1(t)$ - Ball Position [m]', ...
+    '$x_2(t)$ - Ball Velocity [m/s]', ...
+    '$x_3(t)$ - Beam Angle [rad]', ...
+    '$x_4(t)$ - Beam Velocity [rad/s]'};
+
+for i = 1:4
+    nexttile((i-1)*2 + 1);
+    
+    plot(t, xs(i,:), 'Color', colors, 'LineWidth', 2);
+    
+    title(state_titles{i}, 'Interpreter', 'latex', 'FontSize', 11);
+    
+    grid on;
+    set(gca, ...
+        'FontName', 'Times New Roman', ...
+        'FontSize', 11, ...
+        'XMinorGrid', 'on', ...
+        'YMinorGrid', 'on', ...
+        'GridAlpha', 0.15, ...
+        'TickLabelInterpreter', 'latex', ...
+        'Box', 'on');
+    
+    if i ~= 4
+        set(gca, 'XTickLabel', []);
+    else
+        xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+    end
+end
+
+ax_input = nexttile(2);
+ax_input.Layout.TileSpan = [4 1];
+
+plot(t, us, 'Color', input_color, 'LineWidth', 2);
+
+title('$u(t)$ - Applied Torque', 'Interpreter', 'latex', 'FontSize', 12);
+xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+ylabel('$u(t)$', 'Interpreter', 'latex', 'FontSize', 12);
+
+grid on;
+set(gca, ...
+    'FontName', 'Times New Roman', ...
+    'FontSize', 11, ...
+    'XMinorGrid', 'on', ...
+    'YMinorGrid', 'on', ...
+    'GridAlpha', 0.15, ...
+    'TickLabelInterpreter', 'latex', ...
+    'Box', 'on');
+
+title(tlo, '\textbf{LQR (Model Predictive Finite) - Zero Regulation}', ...
+    'Interpreter', 'latex', 'FontSize', 15);
 
 input('Press to Polytopic Description (Unconstrained)')
 close all
 clear xs us t
 
 %% POLYTOPIC DESCRIPTION (Unconstrained)
-xeq_vals = {-0.4 0 0.4};
-param.tspan = [0 7];
+Nvals = 30;
+xeq_vals = linspace(-0.4,0.4,Nvals);
+param.tspan = [0 6];
 N = round(param.tspan(2)/param.dt);
 
 param.Q1 = diag([1 0.1 1 0.1]);
@@ -134,7 +256,7 @@ x_store = {};
 t_store = {};
 u_store = {};
 
-[A_cell,B_cell] = build_pol(param,f,xeq_vals,x,u);
+[A_cell,B_cell,xeq_used] = build_pol(param,f,xeq_vals,x,u);
 C = eye(param.n);
 
 mpc = MPC(f_fun,ft,param,A_cell,B_cell,C);
@@ -162,53 +284,99 @@ end
 
 t = 0:param.dt:N*param.dt;
 
-Q1 = QQ(1:2,1:2);
-Q2 = QQ(3:4,3:4);
+e = ell(QQ);
 
-e1 = ell(Q1);
-e2 = ell(Q2);
+% Plot
+fig = figure('Units', 'inches'); 
 
-figure(1)
-subplot(2,1,1)
-e1.bestPlot([1 0 0])
-hold on
-plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
-plot(xs(1,:),xs(2,:),'b','LineWidth',1.5);
-hold off
-title('\big($x_1(t)$,$x_2(t)$\big) Evolution - Unconstrained','Interpreter','latex')
-xlabel('$x_1(t)$ - [m]','Interpreter','latex')
-ylabel('$x_2(t)$ - [m/s]','Interpreter','latex')
-grid
+colors = [0, 0.447, 0.741]; 
+input_color = [0.1, 0.6, 0.2];
+
+tlo = tiledlayout(4, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+state_titles = {...
+    '$x_1(t)$ - Ball Position [m]', ...
+    '$x_2(t)$ - Ball Velocity [m/s]', ...
+    '$x_3(t)$ - Beam Angle [rad]', ...
+    '$x_4(t)$ - Beam Velocity [rad/s]'};
+
+for i = 1:4
+    nexttile((i-1)*2 + 1);
+    
+    plot(t, xs(i,:), 'Color', colors, 'LineWidth', 2);
+    
+    title(state_titles{i}, 'Interpreter', 'latex', 'FontSize', 11);
+    
+    grid on;
+    set(gca, ...
+        'FontName', 'Times New Roman', ...
+        'FontSize', 11, ...
+        'XMinorGrid', 'on', ...
+        'YMinorGrid', 'on', ...
+        'GridAlpha', 0.15, ...
+        'TickLabelInterpreter', 'latex', ...
+        'Box', 'on');
+    
+    if i ~= 4
+        set(gca, 'XTickLabel', []);
+    else
+        xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+    end
+end
+
+ax_input = nexttile(2);
+ax_input.Layout.TileSpan = [4 1];
+
+plot(t(1:end-1), us, 'Color', input_color, 'LineWidth', 2);
+
+title('$u(t)$ - Applied Torque', 'Interpreter', 'latex', 'FontSize', 12);
+xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+ylabel('$u(t)$', 'Interpreter', 'latex', 'FontSize', 12);
+
+grid on;
+set(gca, ...
+    'FontName', 'Times New Roman', ...
+    'FontSize', 11, ...
+    'XMinorGrid', 'on', ...
+    'YMinorGrid', 'on', ...
+    'GridAlpha', 0.15, ...
+    'TickLabelInterpreter', 'latex', ...
+    'Box', 'on');
+
+title(tlo, '\textbf{Polytopic Description - Unconstrained}', ...
+    'Interpreter', 'latex', 'FontSize', 15);
+
+fig1 = figure('Units', 'inches');
+tlo1 = tiledlayout(2, 1, 'TileSpacing', 'loose', 'Padding', 'compact');
 
 
-subplot(2,1,2)
-e2.bestPlot([1 0 0])
-hold on
-plot(param.x_eq(3),param.x_eq(4),'ok','LineWidth',1)
-plot(xs(3,:),xs(4,:),'b','LineWidth',1.5);
-hold off
-title('\big($x_3(t)$,$x_4(t)$\big) Evolution - Unconstrained','Interpreter','latex')
-xlabel('$x_3(t)$ - [rad]','Interpreter','latex')
-ylabel('$x_3(t)$ - [rad/s]','Interpreter','latex')
-grid
- 
-figure;
-subplot(2,1,1)
-plot(t,xs,LineWidth=1.5);
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-grid
-legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
-hold off
-subplot(2,1,2)
-plot(t(1:end-1),us,'-g',LineWidth=1.5)
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('Input $u(t)$', 'Interpreter', 'latex')
-legend('$u(t)$ - Applied Torque [rad/s$^2$]', 'Interpreter', 'latex', 'Location', 'best')
-grid
+nexttile;
+hold on;
+e.plotEllBoundary(B1,'k--');
+set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
+plot(xs(1,:), xs(2,:), 'b', 'LineWidth', 1.8);
+xlabel('$x_1(t)$ - [m]', 'Interpreter', 'latex', 'FontSize', 13);
+ylabel('$x_2(t)$ - [m/s]', 'Interpreter', 'latex', 'FontSize', 13);
+title('\boldmath{$(x_1, x_2)$} \textbf{Evolution - Unconstrained}', 'Interpreter', 'latex', 'FontSize', 14);
+grid on;
+set(gca, 'TickLabelInterpreter', 'latex', 'Box', 'on');
+hold off;
 
-sgtitle('Polytopic Descrption - Unconstrained','Interpreter','latex')
+nexttile;
+hold on;
+e.plotEllBoundary(B2,'k--');
+set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
+plot(xs(3,:), xs(4,:), 'b', 'LineWidth', 1.8);
+xlabel('$x_3(t)$ - [rad]', 'Interpreter', 'latex', 'FontSize', 13);
+ylabel('$x_4(t)$ - [rad/s]', 'Interpreter', 'latex', 'FontSize', 13);
+title('\boldmath{$(x_3, x_4)$} \textbf{Evolution - Unconstrained}', 'Interpreter', 'latex', 'FontSize', 14);
+grid on;
+set(gca, 'TickLabelInterpreter', 'latex', 'Box', 'on');
+hold off;
 
+fig2 = figure('Units', 'inches');
+colors = [0, 0.447, 0.741; 0.85, 0.325, 0.098; 0.466, 0.674, 0.188; 0.494, 0.184, 0.556];
+tlo2 = tiledlayout(2, 1, 'TileSpacing', 'loose', 'Padding', 'compact');
 
 x_store{end+1}=xs;
 u_store{end+1}=us;
@@ -217,8 +385,8 @@ input('Press to Polytopic Description (Constrained Input)')
 close all
 clear F t us xs Qe Q1 Q2
 
-% POLYTOPIC DESCRIPTION (Constrained Input)
-u_max = 3.5 + param.u_eq;
+%% POLYTOPIC DESCRIPTION (Constrained Input)
+u_max = 4 + param.u_eq;
 
 xs = zeros(param.n,N);
 us = zeros(param.m,N);
@@ -242,151 +410,262 @@ for k = 1:N/h
 end
 
 t = 0:param.dt:N*param.dt;
-Q1 = QQ(1:2,1:2);
-Q2 = QQ(3:4,3:4);
 
-e1c = ell(Q1);
-e2c = ell(Q2);
+ec = ell(QQ);
 
-figure(1)
-subplot(2,1,1)
-e1c.bestPlot([1 0 0])
+% Plot
+fig = figure('Units', 'inches'); 
+
+colors = [0, 0.447, 0.741]; 
+input_color = [0.1, 0.6, 0.2];
+
+tlo = tiledlayout(4, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+state_titles = {...
+    '$x_1(t)$ - Ball Position [m]', ...
+    '$x_2(t)$ - Ball Velocity [m/s]', ...
+    '$x_3(t)$ - Beam Angle [rad]', ...
+    '$x_4(t)$ - Beam Velocity [rad/s]'};
+
+for i = 1:4
+    nexttile((i-1)*2 + 1);
+    
+    plot(t, xs(i,:), 'Color', colors, 'LineWidth', 2);
+    
+    title(state_titles{i}, 'Interpreter', 'latex', 'FontSize', 11);
+    
+    grid on;
+    set(gca, ...
+        'FontName', 'Times New Roman', ...
+        'FontSize', 11, ...
+        'XMinorGrid', 'on', ...
+        'YMinorGrid', 'on', ...
+        'GridAlpha', 0.15, ...
+        'TickLabelInterpreter', 'latex', ...
+        'Box', 'on');
+    
+    if i ~= 4
+        set(gca, 'XTickLabel', []);
+    else
+        xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+    end
+end
+
+ax_input = nexttile(2);
+ax_input.Layout.TileSpan = [4 1];
+
+plot(t(1:end-1), us, 'Color', input_color, 'LineWidth', 2);
 hold on
-plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
-plot(xs(1,:),xs(2,:),'b','LineWidth',1.5);
-hold off
-title('\big($x_1(t)$,$x_2(t)$\big) Evolution - Constrained','Interpreter','latex')
-xlabel('$x_1(t)$ - [m]','Interpreter','latex')
-ylabel('$x_2(t)$ - [m/s]','Interpreter','latex')
-grid
+yline(u_max, '--k', 'LineWidth', 1.2);
+yline(-u_max, '--k', 'LineWidth', 1.2);
+legend({'$u(t)$ - Applied Torque [rad/s$^2$]','$u_{max}$'}, ...
+       'Interpreter', 'latex', 'Location', 'best', 'FontSize', 10);
+legend boxoff;
+hold off;
 
-subplot(2,1,2)
-e2c.bestPlot([1 0 0])
-hold on
-plot(param.x_eq(3),param.x_eq(4),'ok','LineWidth',1)
-plot(xs(3,:),xs(4,:),'b','LineWidth',1.5);
-hold off
-title('\big($x_3(t)$,$x_4(t)$\big) Evolution - Constrained','Interpreter','latex')
-xlabel('$x_3(t)$ - [rad]','Interpreter','latex')
-ylabel('$x_3(t)$ - [rad/s]','Interpreter','latex')
-grid
 
-figure;
-subplot(2,1,1)
-plot(t,xs,LineWidth=1.5);
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('States $\mathbf{x}(t)$', 'Interpreter', 'latex')
-grid
-legend('$x_1(t)$ - Ball Position [m]', '$x_2(t)$ - Ball Velocity [m/s]', '$x_3(t)$ - Beam Angle [rad]', '$x_4(t)$ - Beam Velocity [rad/s]', 'Interpreter', 'latex', 'Location', 'best')
-hold off
-subplot(2,1,2)
-plot(t(1:end-1),us,'-g',LineWidth=1.5)
-yline(u_max,'--k');
-yline(-u_max,'--k')
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('Input $u(t)$', 'Interpreter', 'latex')
-legend('$u(t)$ - Applied Torque [rad/s$^2$]','$u_{max}$','$-u_{max}$','Interpreter', 'latex', 'Location', 'best')
-grid
 
-sgtitle('Polytopic Descrption - Constrained Input','Interpreter','latex')
+title('$u(t)$ - Applied Torque', 'Interpreter', 'latex', 'FontSize', 12);
+xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+ylabel('$u(t)$', 'Interpreter', 'latex', 'FontSize', 12);
+ylim([-4.5 4.5])
 
+grid on;
+set(gca, ...
+    'FontName', 'Times New Roman', ...
+    'FontSize', 11, ...
+    'XMinorGrid', 'on', ...
+    'YMinorGrid', 'on', ...
+    'GridAlpha', 0.15, ...
+    'TickLabelInterpreter', 'latex', ...
+    'Box', 'on');
+
+title(tlo, '\textbf{Polytopic Description - Constrained Input}', ...
+    'Interpreter', 'latex', 'FontSize', 15);
+
+fig1 = figure('Units', 'inches');
+tlo1 = tiledlayout(2, 1, 'TileSpacing', 'loose', 'Padding', 'compact');
+
+
+nexttile;
+hold on;
+ec.plotEllBoundary(B1,'--k');
+set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
+plot(xs(1,:), xs(2,:), 'b', 'LineWidth', 1.8);
+xlabel('$x_1(t)$ - [m]', 'Interpreter', 'latex', 'FontSize', 13);
+ylabel('$x_2(t)$ - [m/s]', 'Interpreter', 'latex', 'FontSize', 13);
+title('\boldmath{$(x_1, x_2)$} \textbf{Evolution - Constrained Input}', 'Interpreter', 'latex', 'FontSize', 14);
+grid on;
+set(gca, 'TickLabelInterpreter', 'latex', 'Box', 'on');
+hold off;
+
+nexttile;
+hold on;
+ec.plotEllBoundary(B2,'--k');
+set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
+plot(param.x_eq(3), param.x_eq(4), 'ok', 'MarkerFaceColor', 'k', 'MarkerSize', 4);
+plot(xs(3,:), xs(4,:), 'b', 'LineWidth', 1.8);
+xlabel('$x_3(t)$ - [rad]', 'Interpreter', 'latex', 'FontSize', 13);
+ylabel('$x_4(t)$ - [rad/s]', 'Interpreter', 'latex', 'FontSize', 13);
+title('\boldmath{$(x_3, x_4)$} \textbf{Evolution - Constrained Input}', 'Interpreter', 'latex', 'FontSize', 14);
+grid on;
+set(gca, 'TickLabelInterpreter', 'latex', 'Box', 'on');
+hold off;
 
 x_store{end+1}=xs;
 u_store{end+1}=us;
 t_store{end+1}=t;
 
-sgtitle('Polytopic Descrption - Constrained Input','Interpreter','latex')
-
 input('Comparison - Unconstrained Constrained')
 close all
 clear F t us xs Qe Q1 Q2
 
-% COMPARISON (Unconstrained vs Constrained)
-figure(1)
-subplot(2,2,1);
-plot(t_store{1},x_store{1}(1,:),'b','LineWidth',1.5)
-hold on
-plot(t_store{2},x_store{2}(1,:),'g','LineWidth',1.5)
-hold off
-legend('$x_1(t)$','$x_1(t)$ constrained','Interpreter','latex')
-xlabel('Time [s]','Interpreter','latex')
-ylabel('Position [m]','Interpreter','latex')
-grid
-subplot(2,2,2);
-plot(t_store{1},x_store{1}(2,:),'b','LineWidth',1.5)
-hold on
-plot(t_store{2},x_store{2}(2,:),'g','LineWidth',1.5)
-hold off
-legend('$x_2(t)$','$x_2(t)$ constrained','Interpreter','latex')
-xlabel('Time [s]','Interpreter','latex')
-ylabel('Velocity [m/s]','Interpreter','latex')
-grid
+%% COMPARISON (Unconstrained vs Constrained)
 
-subplot(2,2,[3 4])
-e1.bestPlot([0.5 0.5 0.5])
-hold on
-e1c.bestPlot([1 0 0])
-plot(x_store{1}(1,:),x_store{1}(2,:),'b','LineWidth',1.5);
-plot(x_store{2}(1,:),x_store{2}(2,:),'g','LineWidth',1.5);
-plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
-hold off
-xlabel('$x_1(t)$','Interpreter','latex')
-ylabel('$x_2(t)$','Interpreter','latex')
-grid
-legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex','Location','best')
-sgtitle('\big($x_1(t)$,$x_2(t)$\big) Evolution - Unconstrained vs Constrained','Interpreter','latex')
+fig = figure('Units', 'inches'); 
 
-figure(2)
-subplot(2,2,1);
-plot(t_store{1},x_store{1}(3,:),'b','LineWidth',1.5)
-hold on
-plot(t_store{2},x_store{2}(3,:),'g','LineWidth',1.5)
-hold off
-legend('$x_3(t)$','$x_3(t)$ constrained','Interpreter','latex')
-xlabel('Time [s]','Interpreter','latex')
-ylabel('Position [rad]','Interpreter','latex')
-grid
-subplot(2,2,2);
-plot(t_store{1},x_store{1}(4,:),'b','LineWidth',1.5)
-hold on
-plot(t_store{2},x_store{2}(4,:),'g','LineWidth',1.5)
-hold off
-legend('$x_4(t)$','$x_4(t)$ constrained','Interpreter','latex')
-xlabel('Time [s]','Interpreter','latex')
-ylabel('Angular Velocity [rad/s]','Interpreter','latex')
-grid
+color_free   = [0, 0.447, 0.741];     % stati NON vincolati (blu)
+color_constr = [0.850, 0.325, 0.098]; % stati vincolati (rosso)
 
-subplot(2,2,[3 4])
-e2.bestPlot([0.5 0.5 0.5])
-hold on
-e2c.bestPlot([1 0 0])
-plot(x_store{1}(3,:),x_store{1}(4,:),'b','LineWidth',1.5);
-plot(x_store{2}(3,:),x_store{2}(4,:),'g','LineWidth',1.5);
-plot(param.x_eq(3),param.x_eq(4),'ok','LineWidth',1)
-xlabel('$x_3(t)$','Interpreter','latex')
-ylabel('$x_4(t)$','Interpreter','latex')
-grid
-legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex')
-sgtitle('\big($x_3(t)$,$x_4(t)$\big) Evolution - Unconstrained vs Constrained','Interpreter','latex')
+input_free   = [0.1, 0.6, 0.2];       % input NON vincolato (verde)
+input_constr = [0.494, 0.184, 0.556]; % input vincolato (viola)
 
-figure(3)
-plot(t_store{1}(1:end-1),u_store{1},'b','LineWidth',1.5);
-hold on
-plot(t_store{2}(1:end-1),u_store{2},'g','LineWidth',1.5);
-yline(u_max,'--k');
-yline(-u_max,'--k')
-xlabel('Time [s]', 'Interpreter', 'latex')
-ylabel('Input - $u(t)$', 'Interpreter', 'latex')
-ylim([-5 5])
-legend('$u(t)$','$u(t)$ constrained','$u_{max}$','$-u_{max}$','Interpreter','latex','Location','best')
-grid
-sgtitle('Input Unconstrained vs Input Constrained','Interpreter','latex')
+tlo = tiledlayout(4, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+state_titles = {...
+    '$x_1(t)$ - Ball Position [m]', ...
+    '$x_2(t)$ - Ball Velocity [m/s]', ...
+    '$x_3(t)$ - Beam Angle [rad]', ...
+    '$x_4(t)$ - Beam Velocity [rad/s]'};
+
+% ===== STATI =====
+for i = 1:4
+    nexttile((i-1)*2 + 1);
+    hold on;
+    
+    plot(t_store{1}, x_store{1}(i,:), ...
+        '-', 'Color', color_free, 'LineWidth', 2);
+    
+    plot(t_store{2}, x_store{2}(i,:), ...
+        '--', 'Color', color_constr, 'LineWidth', 2);
+    
+    title(state_titles{i}, 'Interpreter', 'latex', 'FontSize', 11);
+    
+    grid on;
+    set(gca, ...
+        'FontName', 'Times New Roman', ...
+        'FontSize', 11, ...
+        'XMinorGrid', 'on', ...
+        'YMinorGrid', 'on', ...
+        'GridAlpha', 0.15, ...
+        'TickLabelInterpreter', 'latex', ...
+        'Box', 'on');
+    
+    if i ~= 4
+        set(gca, 'XTickLabel', []);
+    else
+        xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+    end
+    
+    if i == 1
+        legend({'Unconstrained', 'Constrained'}, ...
+            'Interpreter', 'latex', 'FontSize', 10, 'Location', 'best');
+        legend boxoff;
+    end
+    
+    hold off;
+end
+
+% ===== INPUT =====
+ax_input = nexttile(2);
+ax_input.Layout.TileSpan = [4 1];
+
+hold on;
+
+% NON vincolato
+plot(t_store{1}(1:end-1), u_store{1}, ...
+    '-', 'Color', input_free, 'LineWidth', 2);
+
+% vincolato
+plot(t_store{2}(1:end-1), u_store{2}, ...
+    '--', 'Color', input_constr, 'LineWidth', 2);
+
+% limiti
+yline(u_max, '--k', 'LineWidth', 1.2);
+yline(-u_max, '--k', 'LineWidth', 1.2);
+
+legend({'Unconstrained', 'Constrained', '$\pm u_{max}$'}, ...
+       'Interpreter', 'latex', 'Location', 'best', 'FontSize', 10);
+legend boxoff;
+
+title('$u(t)$ - Applied Torque', 'Interpreter', 'latex', 'FontSize', 12);
+xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+ylabel('$u(t)$', 'Interpreter', 'latex', 'FontSize', 12);
+
+ylim([-4.5 4.5]);
+
+grid on;
+set(gca, ...
+    'FontName', 'Times New Roman', ...
+    'FontSize', 11, ...
+    'XMinorGrid', 'on', ...
+    'YMinorGrid', 'on', ...
+    'GridAlpha', 0.15, ...
+    'TickLabelInterpreter', 'latex', ...
+    'Box', 'on');
+
+hold off;
+
+% ===== TITOLO =====
+title(tlo, '\textbf{Polytopic Description - Constrained vs Unconstrained}', ...
+    'Interpreter', 'latex', 'FontSize', 15);
+
+
+fig1 = figure('Units', 'inches');
+tlo1 = tiledlayout(2, 1, 'TileSpacing', 'loose', 'Padding', 'compact');
+
+
+nexttile;
+hold on;
+plot(x_store{1}(1,:), x_store{1}(2,:), 'b', 'LineWidth', 1.8);
+plot(x_store{2}(1,:), x_store{2}(2,:), 'r', 'LineWidth', 1.8);
+e.plotEllBoundary(B1,'--k')
+ec.plotEllBoundary(B1,'--r');
+set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
+xlabel('$x_1(t)$ - [m]', 'Interpreter', 'latex', 'FontSize', 13);
+ylabel('$x_2(t)$ - [m/s]', 'Interpreter', 'latex', 'FontSize', 13);
+title('\boldmath{$(x_1, x_2)$} \textbf{Evolution - Constrained Input}', 'Interpreter', 'latex', 'FontSize', 14);
+grid on;
+set(gca, 'TickLabelInterpreter', 'latex', 'Box', 'on');
+hold off;
+legend({'Unconstrained', 'Constrained'}, ...
+       'Interpreter', 'latex', 'Location', 'best', 'FontSize', 10);
+legend boxoff;
+
+
+nexttile;
+hold on;
+plot(x_store{1}(3,:), x_store{1}(4,:), 'b', 'LineWidth', 1.8);
+plot(x_store{2}(3,:), x_store{2}(4,:), 'r', 'LineWidth', 1.8);
+e.plotEllBoundary(B2,'--k')
+ec.plotEllBoundary(B2,'--r');
+set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
+xlabel('$x_3(t)$ - [rad]', 'Interpreter', 'latex', 'FontSize', 13);
+ylabel('$x_4(t)$ - [rad/s]', 'Interpreter', 'latex', 'FontSize', 13);
+title('\boldmath{$(x_3, x_4)$} \textbf{Evolution - Constrained Input}', 'Interpreter', 'latex', 'FontSize', 14);
+grid on;
+set(gca, 'TickLabelInterpreter', 'latex', 'Box', 'on');
+hold off;
+legend({'Unconstrained', 'Constrained'}, ...
+       'Interpreter', 'latex', 'Location', 'best', 'FontSize', 10);
+legend boxoff;
+
 
 input('Component Wise Constraints')
 close all
 
-% POLYTOPIC DESCRIPTION (Component Wise Constraints)
-y_max = [0.4, 0.3, 0.4, 0.35]';
+%% POLYTOPIC DESCRIPTION (Component Wise Constraints)
+y_max = [0.4, 0.25, 0.6, 1]';
 
 xs = zeros(param.n,N);
 us = zeros(param.m,N);
@@ -411,102 +690,153 @@ end
 
 t = 0:param.dt:N*param.dt;
 
-figure;
-subplot(2,2,1)
-plot(t,xs(1,:),'-b',LineWidth=1.5);
-hold on
-yline(-y_max(1),'--k')
-yline(y_max(1),'--k')
-ylim([-0.5 0.5])
-legend('$x_1(t)$ evolution','$-y_{max,1}$','$y_{max,1}$','Interpreter','latex')
-xlabel('Time [s]','Interpreter','latex')
-ylabel('Position [m]','Interpreter','latex')
-grid
+ecw = ell(QQ);
 
-subplot(2,2,2)
-plot(t,xs(2,:),'-b',LineWidth=1.5);
-hold on
-yline(-y_max(2),'--k')
-yline(y_max(2),'--k')
-ylim([-0.5 0.5])
-legend('$x_2(t)$ evolution','$-y_{max,2}$','$y_{max,2}$','Interpreter','latex')
-xlabel('Time [s]','Interpreter','latex')
-ylabel('Velocity [m/s]','Interpreter','latex')
-grid
+% Plot
+fig = figure('Units', 'inches'); 
 
-subplot(2,2,3)
-plot(t,xs(3,:),'-b',LineWidth=1.5);
-hold on
-yline(-y_max(3),'--k')
-yline(y_max(3),'--k')
-ylim([-0.5 0.5])
-legend('$x_3(t)$ evolution','$-y_{max,3}$','$y_{max,3}$','Interpreter','latex')
-xlabel('Time [s]','Interpreter','latex')
-ylabel('Position [rad]','Interpreter','latex')
-grid
+color_free   = [0, 0.447, 0.741];     % stati NON vincolati (blu)
+color_constr = [0.850, 0.325, 0.098]; % stati vincolati (rosso)
 
-subplot(2,2,4)
-plot(t,xs(4,:),'-b',LineWidth=1.5);
-hold on
-yline(-y_max(4),'--k')
-yline(y_max(4),'--k')
-ylim([-0.5 0.5])
-legend('$x_4(t)$ evolution','$-y_{max,4}$','$y_{max,4}$','Interpreter','latex')
-xlabel('Time [s]','Interpreter','latex')
-ylabel('Angular Velocity [rad/s]','Interpreter','latex')
-grid
+input_free   = [0.1, 0.6, 0.2];       % input NON vincolato (verde)
+input_constr = [0.494, 0.184, 0.556]; % input vincolato (viola)
 
-sgtitle('State Evolution under Constrains','Interpreter','latex')
+tlo = tiledlayout(4, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
 
-figure
-plot(t(1:end-1),us,'-g',LineWidth=1.5)
-hold on
-yline(u_max,'--k');
-yline(-u_max,'--k')
-xlabel('Time [s]','Interpreter','latex')
-ylabel('Input - $u(t)$','Interpreter','latex')
-ylim([-4 4])
-legend('$u(t)$ - Applied Torque [rad/s$^2$]','$u_{max}$','-$u_{max}$','Interpreter','latex')
-grid
+state_titles = {...
+    '$x_1(t)$ - Ball Position [m]', ...
+    '$x_2(t)$ - Ball Velocity [m/s]', ...
+    '$x_3(t)$ - Beam Angle [rad]', ...
+    '$x_4(t)$ - Beam Velocity [rad/s]'};
 
-sgtitle('Input $u(t)$ Constrained under State Constrains','Interpreter','latex')
+% ===== STATI =====
+for i = 1:4
+    nexttile((i-1)*2 + 1);
+    hold on;
+    
+    plot(t, x_store{1}(i,:), ...
+        '-', 'Color', color_free, 'LineWidth', 2);
+    
+    plot(t, xs(i,:), ...
+        '--', 'Color', color_constr, 'LineWidth', 2);
 
-% ELLIPSOID (Component Wise Constraints)
+    yline([-y_max(i), y_max(i)], '--k', 'LineWidth', 1.1, 'Alpha', 0.7);
+    ylim([-y_max(i)-0.05 y_max(i)+0.05]); grid on;
 
-Q1 = QQ(1:2,1:2);
-Q2 = QQ(3:4,3:4);
+    
+    title(state_titles{i}, 'Interpreter', 'latex', 'FontSize', 11);
+    
+    grid on;
+    set(gca, ...
+        'FontName', 'Times New Roman', ...
+        'FontSize', 11, ...
+        'XMinorGrid', 'on', ...
+        'YMinorGrid', 'on', ...
+        'GridAlpha', 0.15, ...
+        'TickLabelInterpreter', 'latex', ...
+        'Box', 'on');
+    
+    if i ~= 4
+        set(gca, 'XTickLabel', []);
+    else
+        xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+    end
+    
+    if i == 1
+        legend({'Unconstrained', 'Constrained','$\pm y_{max}$'}, ...
+            'Interpreter', 'latex', 'FontSize', 10, 'Location', 'best');
+        legend boxoff;
+    end
+    
+    hold off;
+end
 
-e1cc = ell(Q1);
-e2cc = ell(Q2);
+% ===== INPUT =====
+ax_input = nexttile(2);
+ax_input.Layout.TileSpan = [4 1];
 
-figure
-subplot(2,1,1)
-e1.bestPlot([0.7 0.7 0.7],1)
-hold on
-e1cc.bestPlot([1 0 0])
-plot(x_store{1}(1,:),x_store{1}(2,:),'b','LineWidth',1.5);
-plot(xs(1,:),xs(2,:),'g','LineWidth',1.5);
-plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
-rectangle('Position',[-y_max(1),-y_max(2), 2*y_max(1),2*y_max(2)],'EdgeColor', [1 0.5 0],'LineStyle','--','LineWidth',1.5)
-hold off
-xlabel('$x_1(t)$','Interpreter','latex')
-ylabel('$x_2(t)$','Interpreter','latex')
-grid
-legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex')
-title('\big($x_1(t)$,$x_2(t)$\big) Evolution - Constrained Input and State','Interpreter','latex')
+hold on;
 
-subplot(2,1,2)
-e2.bestPlot([0.7 0.7 0.7],1)
-hold on
-e2cc.bestPlot([1 0 0])
-plot(x_store{1}(3,:),x_store{1}(4,:),'b','LineWidth',1.5);
-plot(xs(3,:),xs(4,:),'g','LineWidth',1.5);
-plot(param.x_eq(1),param.x_eq(2),'ok','LineWidth',1)
-rectangle('Position',[-y_max(3),-y_max(4), 2*y_max(3),2*y_max(4)],'EdgeColor', [1 0.5 0],'LineStyle','--','LineWidth',1.5)
-hold off
-xlabel('$x_3(t)$','Interpreter','latex')
-ylabel('$x_4(t)$','Interpreter','latex')
-grid
-legend('Uncontrained','Constrained','State Evolution Unconstrained','State Evolution Constrained','Equilibrium Point','Interpreter','latex')
-title('\big($x_3(t)$,$x_4(t)$\big) Evolution - Constrained Input and State','Interpreter','latex')
+% NON vincolato
+plot(t_store{1}(1:end-1), u_store{1}, ...
+    '-', 'Color', input_free, 'LineWidth', 2);
+
+% vincolato
+plot(t(1:end-1), us, ...
+    '--', 'Color', input_constr, 'LineWidth', 2);
+
+% limiti
+yline(u_max, '--k', 'LineWidth', 1.2);
+yline(-u_max, '--k', 'LineWidth', 1.2);
+
+legend({'Unconstrained', 'Constrained', '$\pm u_{max}$'}, ...
+       'Interpreter', 'latex', 'Location', 'best', 'FontSize', 10);
+legend boxoff;
+
+title('$u(t)$ - Applied Torque', 'Interpreter', 'latex', 'FontSize', 12);
+xlabel('Time $t$ [s]', 'Interpreter', 'latex', 'FontSize', 12);
+ylabel('$u(t)$', 'Interpreter', 'latex', 'FontSize', 12);
+
+ylim([-4.5 4.5]);
+
+grid on;
+set(gca, ...
+    'FontName', 'Times New Roman', ...
+    'FontSize', 11, ...
+    'XMinorGrid', 'on', ...
+    'YMinorGrid', 'on', ...
+    'GridAlpha', 0.15, ...
+    'TickLabelInterpreter', 'latex', ...
+    'Box', 'on');
+
+hold off;
+
+% ===== TITOLO =====
+title(tlo, '\textbf{Polytopic Description - Constrained vs Unconstrained}', ...
+    'Interpreter', 'latex', 'FontSize', 15);
+
+
+
+fig1 = figure('Units', 'inches');
+tlo1 = tiledlayout(2, 1, 'TileSpacing', 'loose', 'Padding', 'compact');
+
+nexttile;
+hold on;
+plot(x_store{1}(1,:), x_store{1}(2,:), 'b', 'LineWidth', 1.8);
+plot(xs(1,:), xs(2,:), 'r', 'LineWidth', 1.8);
+e.plotEllBoundary(B1,'--k')
+ecw.plotEllBoundary(B1,'--r');
+rectangle('Position',[-y_max(1), -y_max(2), 2*y_max(1), 2*y_max(2)], ...
+          'EdgeColor', [0.85, 0.325, 0.098], 'LineStyle', '--', 'LineWidth', 1.2);
+set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
+xlabel('$x_1(t)$ - [m]', 'Interpreter', 'latex', 'FontSize', 13);
+ylabel('$x_2(t)$ - [m/s]', 'Interpreter', 'latex', 'FontSize', 13);
+title('\boldmath{$(x_1, x_2)$} \textbf{Evolution - Constrained Input}', 'Interpreter', 'latex', 'FontSize', 14);
+grid on;
+set(gca, 'TickLabelInterpreter', 'latex', 'Box', 'on');
+hold off;
+legend({'Unconstrained', 'Constrained'}, ...
+       'Interpreter', 'latex', 'Location', 'best', 'FontSize', 10);
+legend boxoff;
+
+
+nexttile;
+hold on;
+plot(x_store{1}(3,:), x_store{1}(4,:), 'b', 'LineWidth', 1.8);
+plot(xs(3,:), xs(4,:), 'r', 'LineWidth', 1.8);
+e.plotEllBoundary(B2,'--k')
+ecw.plotEllBoundary(B2,'--r');
+rectangle('Position',[-y_max(3), -y_max(4), 2*y_max(3), 2*y_max(4)], ...
+          'EdgeColor', [0.85, 0.325, 0.098], 'LineStyle', '--', 'LineWidth', 1.2);
+set(gca, 'FontName', 'Times New Roman', 'FontSize', 11);
+xlabel('$x_3(t)$ - [rad]', 'Interpreter', 'latex', 'FontSize', 13);
+ylabel('$x_4(t)$ - [rad/s]', 'Interpreter', 'latex', 'FontSize', 13);
+title('\boldmath{$(x_3, x_4)$} \textbf{Evolution - Constrained Input}', 'Interpreter', 'latex', 'FontSize', 14);
+grid on;
+set(gca, 'TickLabelInterpreter', 'latex', 'Box', 'on');
+hold off;
+legend({'Unconstrained', 'Constrained'}, ...
+       'Interpreter', 'latex', 'Location', 'best', 'FontSize', 10);
+legend boxoff;
+
 
